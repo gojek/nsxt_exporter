@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"nsxt_exporter/collector"
 	"os"
 
 	"github.com/go-kit/kit/log/level"
@@ -10,62 +11,60 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+	nsxt "github.com/vmware/go-vmware-nsxt"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-const (
-	namespace = "nsxt"
-)
-
-var (
-	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Is the NSX-T server healthy.", nil, nil)
-)
-
-type Exporter struct {
+type nsxtOpts struct {
+	host     string
+	username string
+	password string
+	insecure bool
 }
 
-func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- up
-}
-
-func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	ok := e.collectHealthStateMetric(ch)
-	if ok {
-		ch <- prometheus.MustNewConstMetric(up, prometheus.GaugeValue, 1.0)
-	} else {
-		ch <- prometheus.MustNewConstMetric(up, prometheus.GaugeValue, 0.0)
+func newNSXTClient(opts nsxtOpts) (*nsxt.APIClient, error) {
+	cfg := nsxt.Configuration{
+		BasePath:           "/api/v1",
+		Host:               opts.host,
+		Scheme:             "https",
+		UserAgent:          "nsxt_exporter/1.0",
+		ClientAuthCertFile: "",
+		RemoteAuth:         false,
+		UserName:           opts.username,
+		Password:           opts.password,
+		Insecure:           opts.insecure,
 	}
-}
-
-func (e *Exporter) collectHealthStateMetric(ch chan<- prometheus.Metric) bool {
-	// TODO(giri/william): Collect metrics and push to channel before returning true
-	return true
-}
-
-func NewExporter() (*Exporter, error) {
-	return &Exporter{}, nil
+	return nsxt.NewAPIClient(&cfg)
 }
 
 func main() {
 	var (
 		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9732").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		opts          = nsxtOpts{}
 	)
+	kingpin.Flag("nsxt.host", "URI of NSX-T manager.").Default("localhost").StringVar(&opts.host)
+	kingpin.Flag("nsxt.username", "The username to connect to the NSX-T manager as.").StringVar(&opts.username)
+	kingpin.Flag("nsxt.password", "The password for the NSX-T manager user.").StringVar(&opts.password)
+	kingpin.Flag("nsxt.insecure", "Disable TLS host verification.").Default("true").BoolVar(&opts.insecure)
+
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
 
-	level.Info(logger).Log("msg", "Starting nsxt_expoter", "version", version.Info())
+	level.Info(logger).Log("msg", "Starting nsxt_exporter", "version", version.Info())
 	level.Info(logger).Log("msg", "Build context", "context", version.BuildContext())
 
-	exporter, err := NewExporter()
+	nsxtClient, err := newNSXTClient(opts)
 	if err != nil {
-		level.Error(logger).Log("msg", "Error creating the exporter", "err", err)
+		level.Error(logger).Log("msg", "Error creating nsx-t client", "err", err)
 		os.Exit(1)
 	}
-	prometheus.MustRegister(exporter)
+
+	collector := collector.NewNSXTCollector(nsxtClient, logger)
+	prometheus.MustRegister(collector)
 	prometheus.MustRegister(version.NewCollector("nsxt_exporter"))
 
 	level.Info(logger).Log("msg", "Listening on address", "address", *listenAddress)
