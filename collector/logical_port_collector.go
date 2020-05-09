@@ -57,6 +57,13 @@ func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortTotal, prometheus.GaugeValue, float64(lportStatus.TotalPorts))
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortUp, prometheus.GaugeValue, float64(lportStatus.UpPorts))
 
+	lportStatusMetrics := lpc.generateLogicalPortStatusMetrics()
+	for _, lportStatusMetric := range lportStatusMetrics {
+		ch <- lportStatusMetric
+	}
+}
+
+func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatusMetrics []prometheus.Metric) {
 	var lports []manager.LogicalPort
 	var cursor string
 	for {
@@ -85,6 +92,8 @@ func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
 		} else {
 			status = 0
 		}
-		ch <- prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName)
+		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName)
+		lportStatusMetrics = append(lportStatusMetrics, lportStatusMetric)
 	}
+	return
 }
