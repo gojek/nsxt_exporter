@@ -2,8 +2,10 @@ package main
 
 import (
 	"net/http"
-	"nsxt_exporter/collector"
 	"os"
+
+	"nsxt_exporter/client"
+	"nsxt_exporter/collector"
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,42 +13,19 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
-	nsxt "github.com/vmware/go-vmware-nsxt"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
-
-type nsxtOpts struct {
-	host     string
-	username string
-	password string
-	insecure bool
-}
-
-func newNSXTClient(opts nsxtOpts) (*nsxt.APIClient, error) {
-	cfg := nsxt.Configuration{
-		BasePath:           "/api/v1",
-		Host:               opts.host,
-		Scheme:             "https",
-		UserAgent:          "nsxt_exporter/1.0",
-		ClientAuthCertFile: "",
-		RemoteAuth:         false,
-		UserName:           opts.username,
-		Password:           opts.password,
-		Insecure:           opts.insecure,
-	}
-	return nsxt.NewAPIClient(&cfg)
-}
 
 func main() {
 	var (
 		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9732").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-		opts          = nsxtOpts{}
+		opts          = client.NSXTOpts{}
 	)
-	kingpin.Flag("nsxt.host", "URI of NSX-T manager.").Default("localhost").StringVar(&opts.host)
-	kingpin.Flag("nsxt.username", "The username to connect to the NSX-T manager as.").StringVar(&opts.username)
-	kingpin.Flag("nsxt.password", "The password for the NSX-T manager user.").StringVar(&opts.password)
-	kingpin.Flag("nsxt.insecure", "Disable TLS host verification.").Default("true").BoolVar(&opts.insecure)
+	kingpin.Flag("nsxt.host", "URI of NSX-T manager.").Default("localhost").StringVar(&opts.Host)
+	kingpin.Flag("nsxt.username", "The username to connect to the NSX-T manager as.").StringVar(&opts.Username)
+	kingpin.Flag("nsxt.password", "The password for the NSX-T manager user.").StringVar(&opts.Password)
+	kingpin.Flag("nsxt.insecure", "Disable TLS host verification.").Default("true").BoolVar(&opts.Insecure)
 
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
@@ -57,7 +36,7 @@ func main() {
 	level.Info(logger).Log("msg", "Starting nsxt_exporter", "version", version.Info())
 	level.Info(logger).Log("msg", "Build context", "context", version.BuildContext())
 
-	nsxtClient, err := newNSXTClient(opts)
+	nsxtClient, err := client.NewNSXTClient(opts)
 	if err != nil {
 		level.Error(logger).Log("msg", "Error creating nsx-t client", "err", err)
 		os.Exit(1)

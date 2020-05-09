@@ -3,8 +3,8 @@ package collector
 import (
 	"github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus"
-	nsxt "github.com/vmware/go-vmware-nsxt"
 
+	"nsxt_exporter/client"
 	"nsxt_exporter/generator"
 )
 
@@ -21,7 +21,7 @@ type logicalPortCollector struct {
 	logicalPortCollectorSuccess *prometheus.Desc
 }
 
-func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func newLogicalPortCollector(client client.NSXTClient, logger log.Logger) prometheus.Collector {
 	metricGenerator := generator.NewLogicalPortMetricGenerator(client, logger)
 	logicalPortTotal := prometheus.NewDesc(prometheus.BuildFQName(namespace, "logical_port", "total"), "Total number of logical ports.", nil, nil)
 	logicalPortUp := prometheus.NewDesc(prometheus.BuildFQName(namespace, "logical_port", "up"), "Number of logical ports currently up.", nil, nil)

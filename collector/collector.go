@@ -3,9 +3,10 @@ package collector
 import (
 	"sync"
 
+	"nsxt_exporter/client"
+
 	"github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus"
-	nsxt "github.com/vmware/go-vmware-nsxt"
 )
 
 const (
@@ -13,10 +14,10 @@ const (
 )
 
 var (
-	factories = make(map[string]func(client *nsxt.APIClient, logger log.Logger) prometheus.Collector)
+	factories = make(map[string]func(client client.NSXTClient, logger log.Logger) prometheus.Collector)
 )
 
-func registerCollector(collector string, factory func(client *nsxt.APIClient, logger log.Logger) prometheus.Collector) {
+func registerCollector(collector string, factory func(client client.NSXTClient, logger log.Logger) prometheus.Collector) {
 	factories[collector] = factory
 }
 
@@ -24,12 +25,10 @@ func registerCollector(collector string, factory func(client *nsxt.APIClient, lo
 // the prometheus metrics package.
 type nsxtCollector struct {
 	collectors []prometheus.Collector
-	client     *nsxt.APIClient
-	logger     log.Logger
 }
 
 // NewNSXTCollector creates a new NSXTCollector.
-func NewNSXTCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func NewNSXTCollector(client client.NSXTClient, logger log.Logger) prometheus.Collector {
 	var collectors []prometheus.Collector
 	for key, factory := range factories {
 		collector := factory(client, log.With(logger, "collector", key))
@@ -37,8 +36,6 @@ func NewNSXTCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Coll
 	}
 	return &nsxtCollector{
 		collectors: collectors,
-		client:     client,
-		logger:     logger,
 	}
 }
 
