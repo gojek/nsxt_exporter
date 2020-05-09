@@ -60,10 +60,12 @@ func (g *logicalPortMetricGenerator) GenerateLogicalPortStatusMetrics() ([]Logic
 			break
 		}
 	}
+	ok := true
 	for _, lport := range lports {
 		lportStatus, err := g.nsxtClient.GetLogicalPortOperationalStatus(lport.Id, nil)
 		if err != nil {
 			level.Error(g.logger).Log("msg", "Unable to get logical port status", "id", lport.Id, "err", err)
+			ok = false
 			continue
 		}
 		var status int64
@@ -78,5 +80,5 @@ func (g *logicalPortMetricGenerator) GenerateLogicalPortStatusMetrics() ([]Logic
 			Status: status,
 		})
 	}
-	return lportsStatus, true
+	return lportsStatus, ok
 }
