@@ -27,37 +27,37 @@ type logicalRouterPortCollector struct {
 func newLogicalRouterPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	rxTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_packet"),
-		"Total packets of logical router port rx",
+		"Total packets received (rx) of logical router port",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	rxDroppedPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_dropped_packet"),
-		"Total dropped packets of logical router port rx",
+		"Total receive (rx) packets dropped of logical router port",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	rxTotalByte := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_byte"),
-		"Total bytes of logical router port rx",
+		"Total bytes received (rx)  of logical router port rx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	txTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_total_packet"),
-		"Total packets of logical router port tx",
+		"Total packets transmitted (rx) of logical router port",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	txDroppedPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_dropped_packet"),
-		"Total dropped packets of logical router port tx",
+		"Total transmit (tx) packets dropped of logical router port tx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	txTotalByte := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_total_byte"),
-		"Total bytes of logical router port tx",
+		"Total bytes transmitted (tx) of logical router port",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
