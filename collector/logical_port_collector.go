@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"strings"
+
 	"nsxt_exporter/client"
 
 	"github.com/go-kit/kit/log"
@@ -70,19 +72,13 @@ func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortTotal, prometheus.GaugeValue, float64(lportStatus.TotalPorts))
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortUp, prometheus.GaugeValue, float64(lportStatus.UpPorts))
 
-	lportMetrics := lpc.generateLogicalPortMetrics()
-	for _, lportMetric := range lportMetrics {
-		ch <- prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, lportMetric.Status, lportMetric.ID, lportMetric.Name)
+	lportStatusMetrics := lpc.generateLogicalPortStatusMetrics()
+	for _, lportStatusMetric := range lportStatusMetrics {
+		ch <- lportStatusMetric
 	}
 }
 
-type LportMetric struct {
-	Name   string
-	ID     string
-	Status float64
-}
-
-func (lpc *logicalPortCollector) generateLogicalPortMetrics() (lportMetrics []LportMetric) {
+func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatusMetrics []prometheus.Metric) {
 	var lports []manager.LogicalPort
 	var cursor string
 	for {
@@ -105,16 +101,14 @@ func (lpc *logicalPortCollector) generateLogicalPortMetrics() (lportMetrics []Lp
 			level.Error(lpc.logger).Log("msg", "Unable to get logical port status", "id", lport.Id, "err", err)
 			continue
 		}
-		status := 0
-		if lportStatus.Status == "UP" {
+		var status float64
+		if strings.ToUpper(lportStatus.Status) == "UP" {
 			status = 1
+		} else {
+			status = 0
 		}
-		lportMetric := LportMetric{
-			Name:   lport.DisplayName,
-			ID:     lport.Id,
-			Status: float64(status),
-		}
-		lportMetrics = append(lportMetrics, lportMetric)
+		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName)
+		lportStatusMetrics = append(lportStatusMetrics, lportStatusMetric)
 	}
 	return
 }
