@@ -24,8 +24,18 @@ type logicalPortCollector struct {
 }
 
 func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
-	logicalPortTotal := prometheus.NewDesc(prometheus.BuildFQName(namespace, "logical_port", "total"), "Total number of logical ports.", nil, nil)
-	logicalPortUp := prometheus.NewDesc(prometheus.BuildFQName(namespace, "logical_port", "up"), "Number of logical ports currently up.", nil, nil)
+	logicalPortTotal := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "logical_port", "total"),
+		"Total number of logical ports.",
+		nil,
+		nil,
+	)
+	logicalPortUp := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "logical_port", "up"),
+		"Number of logical ports currently up.",
+		nil,
+		nil,
+	)
 	logicalPortStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_port", "status"),
 		"Status of logical port UP/DOWN",
