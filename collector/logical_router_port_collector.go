@@ -16,71 +16,71 @@ type logicalRouterPortCollector struct {
 	client *nsxt.APIClient
 	logger log.Logger
 
-	rxTotalPacketDesc   *prometheus.Desc
-	rxDroppedPacketDesc *prometheus.Desc
-	rxTotalByteDesc     *prometheus.Desc
-	txTotalPacketDesc   *prometheus.Desc
-	txDroppedPacketDesc *prometheus.Desc
-	txTotalByteDesc     *prometheus.Desc
+	rxTotalPacket   *prometheus.Desc
+	rxDroppedPacket *prometheus.Desc
+	rxTotalByte     *prometheus.Desc
+	txTotalPacket   *prometheus.Desc
+	txDroppedPacket *prometheus.Desc
+	txTotalByte     *prometheus.Desc
 }
 
 func newLogicalRouterPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
-	rxTotalPacketDesc := prometheus.NewDesc(
+	rxTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_packet"),
 		"Total packets of logical router port rx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
-	rxDroppedPacketDesc := prometheus.NewDesc(
+	rxDroppedPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_dropped_packet"),
 		"Total dropped packets of logical router port rx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
-	rxTotalByteDesc := prometheus.NewDesc(
+	rxTotalByte := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_byte"),
 		"Total bytes of logical router port rx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
-	txTotalPacketDesc := prometheus.NewDesc(
+	txTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_total_packet"),
 		"Total packets of logical router port tx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
-	txDroppedPacketDesc := prometheus.NewDesc(
+	txDroppedPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_dropped_packet"),
 		"Total dropped packets of logical router port tx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
-	txTotalByteDesc := prometheus.NewDesc(
+	txTotalByte := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "tx_total_byte"),
 		"Total bytes of logical router port tx",
 		[]string{"id", "name", "logical_router_id"},
 		nil,
 	)
 	return &logicalRouterPortCollector{
-		client:              client,
-		logger:              logger,
-		rxTotalPacketDesc:   rxTotalPacketDesc,
-		rxTotalByteDesc:     rxTotalByteDesc,
-		rxDroppedPacketDesc: rxDroppedPacketDesc,
-		txTotalPacketDesc:   txTotalPacketDesc,
-		txTotalByteDesc:     txTotalByteDesc,
-		txDroppedPacketDesc: txDroppedPacketDesc,
+		client:          client,
+		logger:          logger,
+		rxTotalPacket:   rxTotalPacket,
+		rxTotalByte:     rxTotalByte,
+		rxDroppedPacket: rxDroppedPacket,
+		txTotalPacket:   txTotalPacket,
+		txTotalByte:     txTotalByte,
+		txDroppedPacket: txDroppedPacket,
 	}
 }
 
 // Describe implements the prometheus.Collector interface.
 func (c *logicalRouterPortCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.rxTotalPacketDesc
-	ch <- c.rxDroppedPacketDesc
-	ch <- c.rxTotalByteDesc
-	ch <- c.txTotalPacketDesc
-	ch <- c.txDroppedPacketDesc
-	ch <- c.txTotalByteDesc
+	ch <- c.rxTotalPacket
+	ch <- c.rxDroppedPacket
+	ch <- c.rxTotalByte
+	ch <- c.txTotalPacket
+	ch <- c.txDroppedPacket
+	ch <- c.txTotalByte
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -116,7 +116,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			continue
 		}
 		rxTotalPacketMetric := prometheus.MustNewConstMetric(
-			c.rxTotalPacketDesc,
+			c.rxTotalPacket,
 			prometheus.GaugeValue,
 			float64(statistic.Rx.TotalPackets),
 			logicalRouterPort.Id,
@@ -124,7 +124,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			logicalRouterPort.LogicalRouterId,
 		)
 		rxDroppedPacketMetric := prometheus.MustNewConstMetric(
-			c.rxDroppedPacketDesc,
+			c.rxDroppedPacket,
 			prometheus.GaugeValue,
 			float64(statistic.Rx.DroppedPackets),
 			logicalRouterPort.Id,
@@ -132,7 +132,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			logicalRouterPort.LogicalRouterId,
 		)
 		rxTotalByteMetric := prometheus.MustNewConstMetric(
-			c.rxTotalByteDesc,
+			c.rxTotalByte,
 			prometheus.GaugeValue,
 			float64(statistic.Rx.TotalBytes),
 			logicalRouterPort.Id,
@@ -140,7 +140,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			logicalRouterPort.LogicalRouterId,
 		)
 		txTotalPacketMetric := prometheus.MustNewConstMetric(
-			c.txTotalPacketDesc,
+			c.txTotalPacket,
 			prometheus.GaugeValue,
 			float64(statistic.Tx.TotalPackets),
 			logicalRouterPort.Id,
@@ -148,7 +148,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			logicalRouterPort.LogicalRouterId,
 		)
 		txDroppedPacketMetric := prometheus.MustNewConstMetric(
-			c.txDroppedPacketDesc,
+			c.txDroppedPacket,
 			prometheus.GaugeValue,
 			float64(statistic.Tx.DroppedPackets),
 			logicalRouterPort.Id,
@@ -156,7 +156,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 			logicalRouterPort.LogicalRouterId,
 		)
 		txTotalByteMetric := prometheus.MustNewConstMetric(
-			c.txTotalByteDesc,
+			c.txTotalByte,
 			prometheus.GaugeValue,
 			float64(statistic.Tx.TotalBytes),
 			logicalRouterPort.Id,
