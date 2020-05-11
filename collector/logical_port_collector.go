@@ -1,8 +1,6 @@
 package collector
 
 import (
-	"strings"
-
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -55,6 +53,7 @@ func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) promethe
 func (lpc *logicalPortCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- lpc.logicalPortUp
 	ch <- lpc.logicalPortTotal
+	ch <- lpc.logicalPortStatus
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -67,13 +66,19 @@ func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortTotal, prometheus.GaugeValue, float64(lportStatus.TotalPorts))
 	ch <- prometheus.MustNewConstMetric(lpc.logicalPortUp, prometheus.GaugeValue, float64(lportStatus.UpPorts))
 
-	lportStatusMetrics := lpc.generateLogicalPortStatusMetrics()
-	for _, lportStatusMetric := range lportStatusMetrics {
-		ch <- lportStatusMetric
+	lportMetrics := lpc.generateLogicalPortMetrics()
+	for _, lportMetric := range lportMetrics {
+		ch <- prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, lportMetric.Status, lportMetric.ID, lportMetric.Name)
 	}
 }
 
-func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatusMetrics []prometheus.Metric) {
+type LportMetric struct {
+	Name   string
+	ID     string
+	Status float64
+}
+
+func (lpc *logicalPortCollector) generateLogicalPortMetrics() (lportMetrics []LportMetric) {
 	var lports []manager.LogicalPort
 	var cursor string
 	for {
@@ -96,14 +101,16 @@ func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatus
 			level.Error(lpc.logger).Log("msg", "Unable to get logical port status", "id", lport.Id, "err", err)
 			continue
 		}
-		var status float64
-		if strings.ToUpper(lportStatus.Status) == "UP" {
+		status := 0
+		if lportStatus.Status == "UP" {
 			status = 1
-		} else {
-			status = 0
 		}
-		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName)
-		lportStatusMetrics = append(lportStatusMetrics, lportStatusMetric)
+		lportMetric := LportMetric{
+			Name:   lport.DisplayName,
+			ID:     lport.Id,
+			Status: float64(status),
+		}
+		lportMetrics = append(lportMetrics, lportMetric)
 	}
 	return
 }
