@@ -30,43 +30,43 @@ type transportZoneCollector struct {
 func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	transportZoneLogicalPort := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "total_logical_port"),
+		prometheus.BuildFQName(namespace, "transport_zone", "logical_port_total"),
 		"Total number of logical port in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneLogicalSwitch := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "total_logical_switch"),
+		prometheus.BuildFQName(namespace, "transport_zone", "logical_switch_total"),
 		"Total number of logical switch in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneTransportNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "total_transport_node"),
+		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_total"),
 		"Total number of transport node in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneDegradedNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "degraded_transport_node"),
+		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_degraded_total"),
 		"Total number of transport node with degraded status in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneDownNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "down_transport_node"),
+		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_down_total"),
 		"Total number of transport node with down status in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneUnknownNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "unknown_transport_node"),
+		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_unknown_total"),
 		"Total number of transport node with unknown status in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
 	transportZoneUpNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "up_transport_node"),
+		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_up_total"),
 		"Total number of transport node with up status in transport zone",
 		[]string{"id", "name"},
 		nil,
