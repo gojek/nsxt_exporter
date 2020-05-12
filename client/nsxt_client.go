@@ -33,6 +33,16 @@ func (c *nsxtClient) GetLogicalPortOperationalStatus(lportId string, localVarOpt
 	return lportStatus, err
 }
 
+func (c *nsxtClient) ListLogicalRouterPorts(localVarOptionals map[string]interface{}) (manager.LogicalRouterPortListResult, error) {
+	lroutersResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.ListLogicalRouterPorts(c.apiClient.Context, localVarOptionals)
+	return lroutersResult, err
+}
+
+func (c *nsxtClient) GetLogicalRouterPortStatisticsSummary(lrportID string) (manager.LogicalRouterPortStatisticsSummary, error) {
+	lrportsStatus, _, err := c.apiClient.LogicalRoutingAndServicesApi.GetLogicalRouterPortStatisticsSummary(c.apiClient.Context, lrportID, nil)
+	return lrportsStatus, err
+}
+
 func (c *nsxtClient) ListDhcpServers(localVarOptionals map[string]interface{}) (manager.LogicalDhcpServerListResult, error) {
 	dhcpServersResult, _, err := c.apiClient.ServicesApi.ListDhcpServers(c.apiClient.Context, localVarOptionals)
 	return dhcpServersResult, err

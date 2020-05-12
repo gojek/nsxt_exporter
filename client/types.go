@@ -9,6 +9,12 @@ type LogicalPortClient interface {
 	GetLogicalPortOperationalStatus(lportId string, localVarOptionals map[string]interface{}) (manager.LogicalPortOperationalStatus, error)
 }
 
+// LogicalRouterPortClient represents API group logical router port for NSX-T client.
+type LogicalRouterPortClient interface {
+	ListLogicalRouterPorts(localVarOptionals map[string]interface{}) (manager.LogicalRouterPortListResult, error)
+	GetLogicalRouterPortStatisticsSummary(lrportID string) (manager.LogicalRouterPortStatisticsSummary, error)
+}
+
 // DHCPClient represents API group DHCP for NSX-T client.
 type DHCPClient interface {
 	ListDhcpServers(localVarOptionals map[string]interface{}) (manager.LogicalDhcpServerListResult, error)
