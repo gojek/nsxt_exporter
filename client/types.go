@@ -9,7 +9,7 @@ import (
 type LogicalPortClient interface {
 	ListLogicalPorts(localVarOptionals map[string]interface{}) (manager.LogicalPortListResult, error)
 	GetLogicalPortStatusSummary(localVarOptionals map[string]interface{}) (manager.LogicalPortStatusSummary, error)
-	GetLogicalPortOperationalStatus(lportId string, localVarOptionals map[string]interface{}) (manager.LogicalPortOperationalStatus, error)
+	GetLogicalPortOperationalStatus(lportID string, localVarOptionals map[string]interface{}) (manager.LogicalPortOperationalStatus, error)
 }
 
 // LogicalRouterPortClient represents API group logical router port for NSX-T client.
@@ -35,4 +35,10 @@ type SystemClient interface {
 	ReadClusterStatus() (administration.ClusterStatus, error)
 	ReadClusterNodesAggregateStatus() (administration.ClustersAggregateInfo, error)
 	ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error)
+}
+
+// LogicalSwitchClient represents API group Logical Switch for NSX-T client.
+type LogicalSwitchClient interface {
+	ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error)
+	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
 }

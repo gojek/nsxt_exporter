@@ -78,3 +78,13 @@ func (c *nsxtClient) ReadApplianceManagementServiceStatus() (administration.Node
 	applianceServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadApplianceManagementServiceStatus(c.apiClient.Context)
 	return applianceServiceStatus, err
 }
+
+func (c *nsxtClient) ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error) {
+	logicalSwitchesResult, _, err := c.apiClient.LogicalSwitchingApi.ListLogicalSwitches(c.apiClient.Context, localVarOptionals)
+	return logicalSwitchesResult, err
+}
+
+func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
+	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
+	return logicalSwitchesStatus, err
+}
