@@ -1,7 +1,11 @@
 package collector
 
 import (
+<<<<<<< HEAD
 	"regexp"
+=======
+	"strconv"
+>>>>>>> Differentiate host and edge type of transport nodes
 	"strings"
 
 	"nsxt_exporter/client"
@@ -20,6 +24,7 @@ func init() {
 type transportNodeCollector struct {
 	transportNodeClient client.TransportNodeClient
 	logger              log.Logger
+	edgeClusterMap      map[string]manager.EdgeClusterMember
 
 	transportNodeStatus *prometheus.Desc
 }
@@ -29,7 +34,7 @@ func newTransportNodeCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 	transportNodeStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_node", "status"),
 		"Status of Transport Node UP/DOWN",
-		[]string{"id", "name"},
+		[]string{"id", "name", "type", "edge_member_index"},
 		nil,
 	)
 	return &transportNodeCollector{
@@ -69,6 +74,7 @@ func (c *transportNodeCollector) generateTransportNodeStatusMetrics() (transport
 		}
 	}
 
+	c.initEdgeClusterMap()
 	for _, transportNode := range transportNodes {
 		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id)
 		if err != nil {

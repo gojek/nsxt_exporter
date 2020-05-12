@@ -64,6 +64,11 @@ func (c *nsxtClient) GetTransportNodeStatus(nodeID string) (manager.TransportNod
 	return transportNodeStatus, err
 }
 
+func (c *nsxtClient) ListEdgeClusters() (manager.EdgeClusterListResult, error) {
+	edgeClustersResult, _, err := c.apiClient.NetworkTransportApi.ListEdgeClusters(c.apiClient.Context, nil)
+	return edgeClustersResult, err
+}
+
 func (c *nsxtClient) ReadClusterStatus() (administration.ClusterStatus, error) {
 	clusterStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadClusterStatus(c.apiClient.Context, nil)
 	return clusterStatus, err

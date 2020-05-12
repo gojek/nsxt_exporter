@@ -28,6 +28,7 @@ type DHCPClient interface {
 type TransportNodeClient interface {
 	ListTransportNodes(localVarOptionals map[string]interface{}) (manager.TransportNodeListResult, error)
 	GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error)
+	ListEdgeClusters() (manager.EdgeClusterListResult, error)
 }
 
 // SystemClient represents API group system for NSX-t client.
