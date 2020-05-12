@@ -3,6 +3,8 @@ package collector
 import (
 	"strings"
 
+	"nsxt_exporter/client"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -15,15 +17,16 @@ func init() {
 }
 
 type logicalPortCollector struct {
-	client *nsxt.APIClient
-	logger log.Logger
+	logicalPortClient client.LogicalPortClient
+	logger            log.Logger
 
 	logicalPortTotal  *prometheus.Desc
 	logicalPortUp     *prometheus.Desc
 	logicalPortStatus *prometheus.Desc
 }
 
-func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	logicalPortTotal := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_port", "total"),
 		"Total number of logical ports.",
@@ -43,8 +46,9 @@ func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) promethe
 		nil,
 	)
 	return &logicalPortCollector{
-		client:            client,
+		logicalPortClient: nsxtClient,
 		logger:            logger,
+
 		logicalPortTotal:  logicalPortTotal,
 		logicalPortUp:     logicalPortUp,
 		logicalPortStatus: logicalPortStatus,
@@ -55,11 +59,12 @@ func newLogicalPortCollector(client *nsxt.APIClient, logger log.Logger) promethe
 func (lpc *logicalPortCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- lpc.logicalPortUp
 	ch <- lpc.logicalPortTotal
+	ch <- lpc.logicalPortStatus
 }
 
 // Collect implements the prometheus.Collector interface.
 func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
-	lportStatus, _, err := lpc.client.LogicalSwitchingApi.GetLogicalPortStatusSummary(lpc.client.Context, nil)
+	lportStatus, err := lpc.logicalPortClient.GetLogicalPortStatusSummary(nil)
 	if err != nil {
 		level.Error(lpc.logger).Log("msg", "Unable to collect logical port status summary", "err", err)
 		return
@@ -79,7 +84,7 @@ func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatus
 	for {
 		localVarOptionals := make(map[string]interface{})
 		localVarOptionals["cursor"] = cursor
-		lportsResult, _, err := lpc.client.LogicalSwitchingApi.ListLogicalPorts(lpc.client.Context, localVarOptionals)
+		lportsResult, err := lpc.logicalPortClient.ListLogicalPorts(localVarOptionals)
 		if err != nil {
 			level.Error(lpc.logger).Log("msg", "Unable to list logical ports", "err", err)
 			return
@@ -91,7 +96,7 @@ func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatus
 		}
 	}
 	for _, lport := range lports {
-		lportStatus, _, err := lpc.client.LogicalSwitchingApi.GetLogicalPortOperationalStatus(lpc.client.Context, lport.Id, nil)
+		lportStatus, err := lpc.logicalPortClient.GetLogicalPortOperationalStatus(lport.Id, nil)
 		if err != nil {
 			level.Error(lpc.logger).Log("msg", "Unable to get logical port status", "id", lport.Id, "err", err)
 			continue
