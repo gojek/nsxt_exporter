@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"nsxt_exporter/client"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,8 +15,8 @@ func init() {
 }
 
 type logicalRouterPortCollector struct {
-	client *nsxt.APIClient
-	logger log.Logger
+	logicalRouterPortClient client.LogicalRouterPortClient
+	logger                  log.Logger
 
 	rxTotalPacket   *prometheus.Desc
 	rxDroppedPacket *prometheus.Desc
@@ -24,7 +26,8 @@ type logicalRouterPortCollector struct {
 	txTotalByte     *prometheus.Desc
 }
 
-func newLogicalRouterPortCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func newLogicalRouterPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	rxTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_packet"),
 		"Total packets received (rx) of logical router port",
@@ -62,14 +65,14 @@ func newLogicalRouterPortCollector(client *nsxt.APIClient, logger log.Logger) pr
 		nil,
 	)
 	return &logicalRouterPortCollector{
-		client:          client,
-		logger:          logger,
-		rxTotalPacket:   rxTotalPacket,
-		rxTotalByte:     rxTotalByte,
-		rxDroppedPacket: rxDroppedPacket,
-		txTotalPacket:   txTotalPacket,
-		txTotalByte:     txTotalByte,
-		txDroppedPacket: txDroppedPacket,
+		logicalRouterPortClient: nsxtClient,
+		logger:                  logger,
+		rxTotalPacket:           rxTotalPacket,
+		rxTotalByte:             rxTotalByte,
+		rxDroppedPacket:         rxDroppedPacket,
+		txTotalPacket:           txTotalPacket,
+		txTotalByte:             txTotalByte,
+		txDroppedPacket:         txDroppedPacket,
 	}
 }
 
@@ -97,7 +100,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 	for {
 		localVarOptionals := make(map[string]interface{})
 		localVarOptionals["cursor"] = cursor
-		logicalRouterPortsResult, _, err := c.client.LogicalRoutingAndServicesApi.ListLogicalRouterPorts(c.client.Context, nil)
+		logicalRouterPortsResult, err := c.logicalRouterPortClient.ListLogicalRouterPorts(localVarOptionals)
 		if err != nil {
 			level.Error(c.logger).Log("msg", "Unable to list logical ports", "err", err)
 			return
@@ -110,7 +113,7 @@ func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics()
 	}
 
 	for _, logicalRouterPort := range logicalRouterPorts {
-		statistic, _, err := c.client.LogicalRoutingAndServicesApi.GetLogicalRouterPortStatisticsSummary(c.client.Context, logicalRouterPort.Id, nil)
+		statistic, err := c.logicalRouterPortClient.GetLogicalRouterPortStatisticsSummary(logicalRouterPort.Id)
 		if err != nil {
 			level.Error(c.logger).Log("msg", "Unable to get logical router port statistics", "id", logicalRouterPort.Id, "err", err)
 			continue
