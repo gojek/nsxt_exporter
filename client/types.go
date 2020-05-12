@@ -1,8 +1,6 @@
 package client
 
-import (
-	"github.com/vmware/go-vmware-nsxt/manager"
-)
+import "github.com/vmware/go-vmware-nsxt/manager"
 
 type LogicalPortClient interface {
 	ListLogicalPorts(localVarOptionals map[string]interface{}) (manager.LogicalPortListResult, error)
