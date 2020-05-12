@@ -42,3 +42,8 @@ type LogicalSwitchClient interface {
 	ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error)
 	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
 }
+
+type TransportZoneClient interface {
+	ListAllTransportZones() ([]manager.TransportZone, error)
+	GetTransportZoneStatus(zoneID string) (manager.TransportZoneStatus, error)
+}

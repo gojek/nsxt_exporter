@@ -88,3 +88,27 @@ func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwi
 	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
 	return logicalSwitchesStatus, err
 }
+
+func (c *nsxtClient) ListAllTransportZones() ([]manager.TransportZone, error) {
+	var transportZones []manager.TransportZone
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		transportZoneListResult, _, err := c.apiClient.NetworkTransportApi.ListTransportZones(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return transportZones, err
+		}
+		transportZones = append(transportZones, transportZoneListResult.Results...)
+		cursor = transportZoneListResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return transportZones, nil
+}
+
+func (c *nsxtClient) GetTransportZoneStatus(zoneID string) (manager.TransportZoneStatus, error) {
+	transportZoneStatus, _, err := c.apiClient.NetworkTransportApi.GetTransportZoneStatus(c.apiClient.Context, zoneID)
+	return transportZoneStatus, err
+}
