@@ -5,6 +5,7 @@ import (
 	nsxt "github.com/vmware/go-vmware-nsxt"
 	"github.com/vmware/go-vmware-nsxt/administration"
 	"github.com/vmware/go-vmware-nsxt/manager"
+	"github.com/vmware/go-vmware-nsxt/monitoring"
 )
 
 type nsxtClient struct {
@@ -111,4 +112,9 @@ func (c *nsxtClient) ListAllTransportZones() ([]manager.TransportZone, error) {
 func (c *nsxtClient) GetTransportZoneStatus(zoneID string) (manager.TransportZoneStatus, error) {
 	transportZoneStatus, _, err := c.apiClient.NetworkTransportApi.GetTransportZoneStatus(c.apiClient.Context, zoneID)
 	return transportZoneStatus, err
+}
+
+func (c *nsxtClient) GetHeatmapTransportZoneStatus(zoneID string) (monitoring.HeatMapTransportZoneStatus, error) {
+	heatmapTransportZoneStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetHeatmapTransportZoneStatus(c.apiClient.Context, zoneID, nil)
+	return heatmapTransportZoneStatus, err
 }
