@@ -19,7 +19,6 @@ type transportZoneCollector struct {
 	logger              log.Logger
 
 	transportZoneLogicalPort   *prometheus.Desc
-	transportZoneLogicalSwitch *prometheus.Desc
 	transportZoneTransportNode *prometheus.Desc
 }
 
@@ -28,12 +27,6 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 	transportZoneLogicalPort := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_zone", "logical_port_total"),
 		"Total number of logical port in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
-	transportZoneLogicalSwitch := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "logical_switch_total"),
-		"Total number of logical switch in transport zone",
 		[]string{"id", "name"},
 		nil,
 	)
@@ -47,7 +40,6 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 		transportZoneClient:        nsxtClient,
 		logger:                     logger,
 		transportZoneLogicalPort:   transportZoneLogicalPort,
-		transportZoneLogicalSwitch: transportZoneLogicalSwitch,
 		transportZoneTransportNode: transportZoneTransportNode,
 	}
 }
@@ -55,7 +47,6 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 // Describe implements the prometheus.Collector interface.
 func (c *transportZoneCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.transportZoneLogicalPort
-	ch <- c.transportZoneLogicalSwitch
 	ch <- c.transportZoneTransportNode
 }
 
@@ -79,7 +70,6 @@ func (c *transportZoneCollector) collectTransportZonesStatus(transportZones []ma
 		}
 		transportZoneLabels := []string{transportZone.Id, transportZone.DisplayName}
 		ch <- prometheus.MustNewConstMetric(c.transportZoneLogicalPort, prometheus.GaugeValue, float64(transportZoneStatus.NumLogicalPorts), transportZoneLabels...)
-		ch <- prometheus.MustNewConstMetric(c.transportZoneLogicalSwitch, prometheus.GaugeValue, float64(transportZoneStatus.NumLogicalSwitches), transportZoneLabels...)
 	}
 }
 
