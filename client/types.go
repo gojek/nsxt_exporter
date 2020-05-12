@@ -1,6 +1,9 @@
 package client
 
-import "github.com/vmware/go-vmware-nsxt/manager"
+import (
+	"github.com/vmware/go-vmware-nsxt/administration"
+	"github.com/vmware/go-vmware-nsxt/manager"
+)
 
 // LogicalPortClient represents API group logical port for NSX-T client.
 type LogicalPortClient interface {
@@ -19,4 +22,11 @@ type DHCPClient interface {
 type TransportNodeClient interface {
 	ListTransportNodes(localVarOptionals map[string]interface{}) (manager.TransportNodeListResult, error)
 	GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error)
+}
+
+// SystemClient represents API group system for NSX-t client.
+type SystemClient interface {
+	ReadClusterStatus() (administration.ClusterStatus, error)
+	ReadClusterNodesAggregateStatus() (administration.ClustersAggregateInfo, error)
+	ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error)
 }
