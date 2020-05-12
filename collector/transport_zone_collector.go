@@ -18,18 +18,11 @@ type transportZoneCollector struct {
 	transportZoneClient client.TransportZoneClient
 	logger              log.Logger
 
-	transportZoneLogicalPort   *prometheus.Desc
 	transportZoneTransportNode *prometheus.Desc
 }
 
 func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
-	transportZoneLogicalPort := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "logical_port_total"),
-		"Total number of logical port in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
 	transportZoneTransportNode := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_total"),
 		"Total number of transport node in transport zone",
@@ -39,14 +32,12 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 	return &transportZoneCollector{
 		transportZoneClient:        nsxtClient,
 		logger:                     logger,
-		transportZoneLogicalPort:   transportZoneLogicalPort,
 		transportZoneTransportNode: transportZoneTransportNode,
 	}
 }
 
 // Describe implements the prometheus.Collector interface.
 func (c *transportZoneCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.transportZoneLogicalPort
 	ch <- c.transportZoneTransportNode
 }
 
@@ -57,20 +48,7 @@ func (c *transportZoneCollector) Collect(ch chan<- prometheus.Metric) {
 		level.Error(c.logger).Log("msg", "Unable to list transport zones", "err", err)
 		return
 	}
-	c.collectTransportZonesStatus(transportZones, ch)
 	c.collectTransportZonesHeatmapStatus(transportZones, ch)
-}
-
-func (c *transportZoneCollector) collectTransportZonesStatus(transportZones []manager.TransportZone, ch chan<- prometheus.Metric) {
-	for _, transportZone := range transportZones {
-		transportZoneStatus, err := c.transportZoneClient.GetTransportZoneStatus(transportZone.Id)
-		if err != nil {
-			level.Error(c.logger).Log("msg", "Unable to get transport zone status", "id", transportZone.Id, "err", err)
-			continue
-		}
-		transportZoneLabels := []string{transportZone.Id, transportZone.DisplayName}
-		ch <- prometheus.MustNewConstMetric(c.transportZoneLogicalPort, prometheus.GaugeValue, float64(transportZoneStatus.NumLogicalPorts), transportZoneLabels...)
-	}
 }
 
 func (c *transportZoneCollector) collectTransportZonesHeatmapStatus(transportZones []manager.TransportZone, ch chan<- prometheus.Metric) {
