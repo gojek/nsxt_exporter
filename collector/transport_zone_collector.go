@@ -21,10 +21,6 @@ type transportZoneCollector struct {
 	transportZoneLogicalPort   *prometheus.Desc
 	transportZoneLogicalSwitch *prometheus.Desc
 	transportZoneTransportNode *prometheus.Desc
-	transportZoneDegradedNode  *prometheus.Desc
-	transportZoneDownNode      *prometheus.Desc
-	transportZoneUnknownNode   *prometheus.Desc
-	transportZoneUpNode        *prometheus.Desc
 }
 
 func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -44,31 +40,7 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 	transportZoneTransportNode := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_total"),
 		"Total number of transport node in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
-	transportZoneDegradedNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_degraded_total"),
-		"Total number of transport node with degraded status in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
-	transportZoneDownNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_down_total"),
-		"Total number of transport node with down status in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
-	transportZoneUnknownNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_unknown_total"),
-		"Total number of transport node with unknown status in transport zone",
-		[]string{"id", "name"},
-		nil,
-	)
-	transportZoneUpNode := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_zone", "transport_node_up_total"),
-		"Total number of transport node with up status in transport zone",
-		[]string{"id", "name"},
+		[]string{"id", "name", "status"},
 		nil,
 	)
 	return &transportZoneCollector{
@@ -77,10 +49,6 @@ func newTransportZoneCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 		transportZoneLogicalPort:   transportZoneLogicalPort,
 		transportZoneLogicalSwitch: transportZoneLogicalSwitch,
 		transportZoneTransportNode: transportZoneTransportNode,
-		transportZoneDegradedNode:  transportZoneDegradedNode,
-		transportZoneDownNode:      transportZoneDownNode,
-		transportZoneUnknownNode:   transportZoneUnknownNode,
-		transportZoneUpNode:        transportZoneUpNode,
 	}
 }
 
@@ -89,10 +57,6 @@ func (c *transportZoneCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.transportZoneLogicalPort
 	ch <- c.transportZoneLogicalSwitch
 	ch <- c.transportZoneTransportNode
-	ch <- c.transportZoneDegradedNode
-	ch <- c.transportZoneDownNode
-	ch <- c.transportZoneUnknownNode
-	ch <- c.transportZoneUpNode
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -116,7 +80,6 @@ func (c *transportZoneCollector) collectTransportZonesStatus(transportZones []ma
 		transportZoneLabels := []string{transportZone.Id, transportZone.DisplayName}
 		ch <- prometheus.MustNewConstMetric(c.transportZoneLogicalPort, prometheus.GaugeValue, float64(transportZoneStatus.NumLogicalPorts), transportZoneLabels...)
 		ch <- prometheus.MustNewConstMetric(c.transportZoneLogicalSwitch, prometheus.GaugeValue, float64(transportZoneStatus.NumLogicalSwitches), transportZoneLabels...)
-		ch <- prometheus.MustNewConstMetric(c.transportZoneTransportNode, prometheus.GaugeValue, float64(transportZoneStatus.NumTransportNodes), transportZoneLabels...)
 	}
 }
 
@@ -127,10 +90,14 @@ func (c *transportZoneCollector) collectTransportZonesHeatmapStatus(transportZon
 			level.Error(c.logger).Log("msg", "Unable to get transport zone heatmap status", "id", transportZone.Id, "err", err)
 			continue
 		}
-		transportZoneLabels := []string{transportZone.Id, transportZone.DisplayName}
-		ch <- prometheus.MustNewConstMetric(c.transportZoneDegradedNode, prometheus.GaugeValue, float64(transportZoneHeatmapStatus.DegradedCount), transportZoneLabels...)
-		ch <- prometheus.MustNewConstMetric(c.transportZoneDownNode, prometheus.GaugeValue, float64(transportZoneHeatmapStatus.DownCount), transportZoneLabels...)
-		ch <- prometheus.MustNewConstMetric(c.transportZoneUnknownNode, prometheus.GaugeValue, float64(transportZoneHeatmapStatus.UnknownCount), transportZoneLabels...)
-		ch <- prometheus.MustNewConstMetric(c.transportZoneUpNode, prometheus.GaugeValue, float64(transportZoneHeatmapStatus.UpCount), transportZoneLabels...)
+		ch <- c.constructTransportZoneTransportNodeMetric(transportZone, transportZoneHeatmapStatus.DegradedCount, "degraded")
+		ch <- c.constructTransportZoneTransportNodeMetric(transportZone, transportZoneHeatmapStatus.DownCount, "down")
+		ch <- c.constructTransportZoneTransportNodeMetric(transportZone, transportZoneHeatmapStatus.UnknownCount, "unknown")
+		ch <- c.constructTransportZoneTransportNodeMetric(transportZone, transportZoneHeatmapStatus.UpCount, "up")
 	}
+}
+
+func (c *transportZoneCollector) constructTransportZoneTransportNodeMetric(transportZone manager.TransportZone, count int32, status string) prometheus.Metric {
+	labels := []string{transportZone.Id, transportZone.DisplayName, status}
+	return prometheus.MustNewConstMetric(c.transportZoneTransportNode, prometheus.GaugeValue, float64(count), labels...)
 }
