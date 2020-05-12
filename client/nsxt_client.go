@@ -42,3 +42,13 @@ func (c *nsxtClient) GetDhcpStatus(dhcpID string, localVarOptionals map[string]i
 	dhcpServerStatus, _, err := c.apiClient.ServicesApi.GetDhcpStatus(c.apiClient.Context, dhcpID)
 	return dhcpServerStatus, err
 }
+
+func (c *nsxtClient) ListTransportNodes(localVarOptionals map[string]interface{}) (manager.TransportNodeListResult, error) {
+	transportNodeStatus, _, err := c.apiClient.NetworkTransportApi.ListTransportNodes(c.apiClient.Context, localVarOptionals)
+	return transportNodeStatus, err
+}
+
+func (c *nsxtClient) GetTransportNodeStatus(nodeId string, localVarOptionals map[string]interface{}) (manager.TransportNodeStatus, error) {
+	transportNodeStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetTransportNodeStatus(c.apiClient.Context, nodeId, localVarOptionals)
+	return transportNodeStatus, err
+}
