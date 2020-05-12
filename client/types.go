@@ -18,5 +18,5 @@ type DHCPClient interface {
 // TransportNodeClient represents API group Transport Node for NSX-T client.
 type TransportNodeClient interface {
 	ListTransportNodes(localVarOptionals map[string]interface{}) (manager.TransportNodeListResult, error)
-	GetTransportNodeStatus(nodeId string, localVarOptionals map[string]interface{}) (manager.TransportNodeStatus, error)
+	GetTransportNodeStatus(nodeID string, localVarOptionals map[string]interface{}) (manager.TransportNodeStatus, error)
 }
