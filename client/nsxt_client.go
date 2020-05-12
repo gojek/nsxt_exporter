@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/go-kit/kit/log"
 	nsxt "github.com/vmware/go-vmware-nsxt"
+	"github.com/vmware/go-vmware-nsxt/administration"
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
@@ -51,4 +52,19 @@ func (c *nsxtClient) ListTransportNodes(localVarOptionals map[string]interface{}
 func (c *nsxtClient) GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error) {
 	transportNodeStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetTransportNodeStatus(c.apiClient.Context, nodeID, nil)
 	return transportNodeStatus, err
+}
+
+func (c *nsxtClient) ReadClusterStatus() (administration.ClusterStatus, error) {
+	clusterStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadClusterStatus(c.apiClient.Context, nil)
+	return clusterStatus, err
+}
+
+func (c *nsxtClient) ReadClusterNodesAggregateStatus() (administration.ClustersAggregateInfo, error) {
+	clusterNodesStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadClusterNodesAggregateStatus(c.apiClient.Context)
+	return clusterNodesStatus, err
+}
+
+func (c *nsxtClient) ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	applianceServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadApplianceManagementServiceStatus(c.apiClient.Context)
+	return applianceServiceStatus, err
 }
