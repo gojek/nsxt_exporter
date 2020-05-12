@@ -48,7 +48,7 @@ func (c *nsxtClient) ListTransportNodes(localVarOptionals map[string]interface{}
 	return transportNodeStatus, err
 }
 
-func (c *nsxtClient) GetTransportNodeStatus(nodeID string, localVarOptionals map[string]interface{}) (manager.TransportNodeStatus, error) {
-	transportNodeStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetTransportNodeStatus(c.apiClient.Context, nodeID, localVarOptionals)
+func (c *nsxtClient) GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error) {
+	transportNodeStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetTransportNodeStatus(c.apiClient.Context, nodeID, nil)
 	return transportNodeStatus, err
 }

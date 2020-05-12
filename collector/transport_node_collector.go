@@ -70,7 +70,7 @@ func (c *transportNodeCollector) generateTransportNodeStatusMetrics() (transport
 	}
 
 	for _, transportNode := range transportNodes {
-		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id, nil)
+		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id)
 		if err != nil {
 			level.Error(c.logger).Log("msg", "Unable to get transport node status", "id", transportNode.Id, "err", err)
 			continue
