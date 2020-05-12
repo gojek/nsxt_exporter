@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"nsxt_exporter/client"
 	"strings"
 
 	"github.com/go-kit/kit/log"
@@ -15,13 +16,14 @@ func init() {
 }
 
 type dhcpCollector struct {
-	client *nsxt.APIClient
-	logger log.Logger
+	dhcpClient client.DHCPClient
+	logger     log.Logger
 
 	dhcpStatus *prometheus.Desc
 }
 
-func newDHCPCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func newDHCPCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	dhcpStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "dhcp", "status"),
 		"Status of DCHP UP/DOWN",
@@ -29,8 +31,8 @@ func newDHCPCollector(client *nsxt.APIClient, logger log.Logger) prometheus.Coll
 		nil,
 	)
 	return &dhcpCollector{
-		client: client,
-		logger: logger,
+		dhcpClient: nsxtClient,
+		logger:     logger,
 		dhcpStatus: dhcpStatus,
 	}
 }
@@ -54,7 +56,7 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []promet
 	for {
 		localVarOptionals := make(map[string]interface{})
 		localVarOptionals["cursor"] = cursor
-		dhcpListResponse, _, err := dc.client.ServicesApi.ListDhcpServers(dc.client.Context, localVarOptionals)
+		dhcpListResponse, err := dc.dhcpClient.ListDhcpServers(localVarOptionals)
 		if err != nil {
 			level.Error(dc.logger).Log("msg", "Unable to list dhcp servers", "err", err)
 			return
@@ -66,7 +68,7 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []promet
 		}
 	}
 	for _, dhcp := range dhcps {
-		dhcpStatus, _, err := dc.client.ServicesApi.GetDhcpStatus(dc.client.Context, dhcp.Id)
+		dhcpStatus, err := dc.dhcpClient.GetDhcpStatus(dhcp.Id, nil)
 		if err != nil {
 			level.Error(dc.logger).Log("msg", "Unable to get dhcp status", "id", dhcp.Id, "err", err)
 			continue
