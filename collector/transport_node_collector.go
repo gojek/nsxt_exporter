@@ -81,7 +81,7 @@ func (c *transportNodeCollector) generateTransportNodeStatusMetrics() (transport
 		} else {
 			status = 0
 		}
-		transportZoneLabels := c.buildTransportZoneLabels(transportNode)
+		transportZoneLabels := c.buildTransportZoneEndpointLabels(transportNode.TransportZoneEndpoints)
 		desc := c.buildStatusDesc(transportZoneLabels)
 		transportNodeStatusMetric := prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, status, transportNode.Id, transportNode.DisplayName)
 		transportNodeMetrics = append(transportNodeMetrics, transportNodeStatusMetric)
@@ -98,9 +98,9 @@ func (c *transportNodeCollector) buildStatusDesc(extraLabels map[string]string) 
 	)
 }
 
-func (c *transportNodeCollector) buildTransportZoneLabels(transportNode manager.TransportNode) map[string]string {
+func (c *transportNodeCollector) buildTransportZoneEndpointLabels(transportZoneEndpoints []manager.TransportZoneEndPoint) prometheus.Labels {
 	labels := make(map[string]string)
-	for _, endpoint := range transportNode.TransportZoneEndpoints {
+	for _, endpoint := range transportZoneEndpoints {
 		sanitizedID := regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(endpoint.TransportZoneId, "_")
 		key := "transport_zone_" + sanitizedID
 		value := endpoint.TransportZoneId
