@@ -28,7 +28,7 @@ func newLogicalSwitchCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 	logicalSwitchStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_switch", "status"),
 		"Status of logical switch success/other",
-		[]string{"id", "name"},
+		[]string{"id", "name", "transport_zone_id"},
 		nil,
 	)
 	return &logicalSwitchCollector{
@@ -80,7 +80,8 @@ func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSw
 		} else {
 			status = 0
 		}
-		logicalSwitchStatusMetric := prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, status, logicalSwitch.Id, logicalSwitch.DisplayName)
+		labels := []string{logicalSwitch.Id, logicalSwitch.DisplayName, logicalSwitch.TransportZoneId}
+		logicalSwitchStatusMetric := prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, status, labels...)
 		logicalSwitchMetrics = append(logicalSwitchMetrics, logicalSwitchStatusMetric)
 	}
 	return

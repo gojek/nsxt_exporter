@@ -42,7 +42,7 @@ func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prome
 	logicalPortStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_port", "status"),
 		"Status of logical port UP/DOWN",
-		[]string{"id", "name"},
+		[]string{"id", "name", "logical_switch_id"},
 		nil,
 	)
 	return &logicalPortCollector{
@@ -107,7 +107,7 @@ func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatus
 		} else {
 			status = 0
 		}
-		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName)
+		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName, lport.LogicalSwitchId)
 		lportStatusMetrics = append(lportStatusMetrics, lportStatusMetric)
 	}
 	return

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"regexp"
 	"strings"
 
 	"nsxt_exporter/client"
@@ -40,7 +41,6 @@ func newTransportNodeCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 
 // Describe implements the prometheus.Collector interface.
 func (c *transportNodeCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.transportNodeStatus
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -81,8 +81,30 @@ func (c *transportNodeCollector) generateTransportNodeStatusMetrics() (transport
 		} else {
 			status = 0
 		}
-		transportNodeStatusMetric := prometheus.MustNewConstMetric(c.transportNodeStatus, prometheus.GaugeValue, status, transportNode.Id, transportNode.DisplayName)
+		transportZoneLabels := c.buildTransportZoneEndpointLabels(transportNode.TransportZoneEndpoints)
+		desc := c.buildStatusDesc(transportZoneLabels)
+		transportNodeStatusMetric := prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, status, transportNode.Id, transportNode.DisplayName)
 		transportNodeMetrics = append(transportNodeMetrics, transportNodeStatusMetric)
 	}
 	return
+}
+
+func (c *transportNodeCollector) buildStatusDesc(extraLabels prometheus.Labels) *prometheus.Desc {
+	return prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "transport_node", "status"),
+		"Status of Transport Node UP/DOWN",
+		[]string{"id", "name"},
+		extraLabels,
+	)
+}
+
+func (c *transportNodeCollector) buildTransportZoneEndpointLabels(transportZoneEndpoints []manager.TransportZoneEndPoint) prometheus.Labels {
+	labels := make(prometheus.Labels)
+	for _, endpoint := range transportZoneEndpoints {
+		sanitizedID := regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(endpoint.TransportZoneId, "_")
+		key := "transport_zone_" + sanitizedID
+		value := endpoint.TransportZoneId
+		labels[key] = value
+	}
+	return labels
 }
