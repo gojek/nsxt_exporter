@@ -20,25 +20,11 @@ type logicalPortCollector struct {
 	logicalPortClient client.LogicalPortClient
 	logger            log.Logger
 
-	logicalPortTotal  *prometheus.Desc
-	logicalPortUp     *prometheus.Desc
 	logicalPortStatus *prometheus.Desc
 }
 
 func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
-	logicalPortTotal := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "logical_port", "total"),
-		"Total number of logical ports.",
-		nil,
-		nil,
-	)
-	logicalPortUp := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "logical_port", "up"),
-		"Number of logical ports currently up.",
-		nil,
-		nil,
-	)
 	logicalPortStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_port", "status"),
 		"Status of logical port UP/DOWN",
@@ -49,29 +35,17 @@ func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prome
 		logicalPortClient: nsxtClient,
 		logger:            logger,
 
-		logicalPortTotal:  logicalPortTotal,
-		logicalPortUp:     logicalPortUp,
 		logicalPortStatus: logicalPortStatus,
 	}
 }
 
 // Describe implements the prometheus.Collector interface.
 func (lpc *logicalPortCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- lpc.logicalPortUp
-	ch <- lpc.logicalPortTotal
 	ch <- lpc.logicalPortStatus
 }
 
 // Collect implements the prometheus.Collector interface.
 func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
-	lportStatus, err := lpc.logicalPortClient.GetLogicalPortStatusSummary(nil)
-	if err != nil {
-		level.Error(lpc.logger).Log("msg", "Unable to collect logical port status summary", "err", err)
-		return
-	}
-	ch <- prometheus.MustNewConstMetric(lpc.logicalPortTotal, prometheus.GaugeValue, float64(lportStatus.TotalPorts))
-	ch <- prometheus.MustNewConstMetric(lpc.logicalPortUp, prometheus.GaugeValue, float64(lportStatus.UpPorts))
-
 	lportStatusMetrics := lpc.generateLogicalPortStatusMetrics()
 	for _, lportStatusMetric := range lportStatusMetrics {
 		ch <- lportStatusMetric

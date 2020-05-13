@@ -8,7 +8,6 @@ import (
 // LogicalPortClient represents API group logical port for NSX-T client.
 type LogicalPortClient interface {
 	ListLogicalPorts(localVarOptionals map[string]interface{}) (manager.LogicalPortListResult, error)
-	GetLogicalPortStatusSummary(localVarOptionals map[string]interface{}) (manager.LogicalPortStatusSummary, error)
 	GetLogicalPortOperationalStatus(lportID string, localVarOptionals map[string]interface{}) (manager.LogicalPortOperationalStatus, error)
 }
 
