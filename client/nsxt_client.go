@@ -5,7 +5,6 @@ import (
 	nsxt "github.com/vmware/go-vmware-nsxt"
 	"github.com/vmware/go-vmware-nsxt/administration"
 	"github.com/vmware/go-vmware-nsxt/manager"
-	"github.com/vmware/go-vmware-nsxt/monitoring"
 )
 
 type nsxtClient struct {
@@ -88,28 +87,4 @@ func (c *nsxtClient) ListLogicalSwitches(localVarOptionals map[string]interface{
 func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
 	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
 	return logicalSwitchesStatus, err
-}
-
-func (c *nsxtClient) ListAllTransportZones() ([]manager.TransportZone, error) {
-	var transportZones []manager.TransportZone
-	var cursor string
-	for {
-		localVarOptionals := make(map[string]interface{})
-		localVarOptionals["cursor"] = cursor
-		transportZoneListResult, _, err := c.apiClient.NetworkTransportApi.ListTransportZones(c.apiClient.Context, localVarOptionals)
-		if err != nil {
-			return transportZones, err
-		}
-		transportZones = append(transportZones, transportZoneListResult.Results...)
-		cursor = transportZoneListResult.Cursor
-		if len(cursor) == 0 {
-			break
-		}
-	}
-	return transportZones, nil
-}
-
-func (c *nsxtClient) GetHeatmapTransportZoneStatus(zoneID string) (monitoring.HeatMapTransportZoneStatus, error) {
-	heatmapTransportZoneStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetHeatmapTransportZoneStatus(c.apiClient.Context, zoneID, nil)
-	return heatmapTransportZoneStatus, err
 }

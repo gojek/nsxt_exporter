@@ -3,7 +3,6 @@ package client
 import (
 	"github.com/vmware/go-vmware-nsxt/administration"
 	"github.com/vmware/go-vmware-nsxt/manager"
-	"github.com/vmware/go-vmware-nsxt/monitoring"
 )
 
 // LogicalPortClient represents API group logical port for NSX-T client.
@@ -42,9 +41,4 @@ type SystemClient interface {
 type LogicalSwitchClient interface {
 	ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error)
 	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
-}
-
-type TransportZoneClient interface {
-	ListAllTransportZones() ([]manager.TransportZone, error)
-	GetHeatmapTransportZoneStatus(zoneID string) (monitoring.HeatMapTransportZoneStatus, error)
 }
