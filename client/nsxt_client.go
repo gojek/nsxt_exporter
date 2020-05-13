@@ -109,11 +109,6 @@ func (c *nsxtClient) ListAllTransportZones() ([]manager.TransportZone, error) {
 	return transportZones, nil
 }
 
-func (c *nsxtClient) GetTransportZoneStatus(zoneID string) (manager.TransportZoneStatus, error) {
-	transportZoneStatus, _, err := c.apiClient.NetworkTransportApi.GetTransportZoneStatus(c.apiClient.Context, zoneID)
-	return transportZoneStatus, err
-}
-
 func (c *nsxtClient) GetHeatmapTransportZoneStatus(zoneID string) (monitoring.HeatMapTransportZoneStatus, error) {
 	heatmapTransportZoneStatus, _, err := c.apiClient.TroubleshootingAndMonitoringApi.GetHeatmapTransportZoneStatus(c.apiClient.Context, zoneID, nil)
 	return heatmapTransportZoneStatus, err

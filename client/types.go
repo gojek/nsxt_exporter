@@ -46,6 +46,5 @@ type LogicalSwitchClient interface {
 
 type TransportZoneClient interface {
 	ListAllTransportZones() ([]manager.TransportZone, error)
-	GetTransportZoneStatus(zoneID string) (manager.TransportZoneStatus, error)
 	GetHeatmapTransportZoneStatus(zoneID string) (monitoring.HeatMapTransportZoneStatus, error)
 }
