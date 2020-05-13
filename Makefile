@@ -2,6 +2,7 @@ ENVVAR=CGO_ENABLED=0 GO111MODULE=on
 PKGS=./...
 
 GO?=go
+GOTEST?=$(GO) test
 GOFMT?=$(GO) fmt
 GOOS?=$(shell $(GO) env GOHOSTOS)
 GOARCH?=$(shell $(GO) env GOHOSTARCH)
@@ -27,6 +28,10 @@ endif
 build:
 	mkdir -p .build/${GOOS}-${GOARCH}
 	$(ENVVAR) GOOS=$(GOOS) go build -o .build/${GOOS}-${GOARCH}/nsxt_exporter ${LDFLAGS_FLAG}
+
+.PHONY: test
+test:
+	$(GOTEST) $(PKGS)
 
 .PHONY: fmt
 fmt:

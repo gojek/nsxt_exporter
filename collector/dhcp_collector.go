@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	registerCollector("dhcp", newDHCPCollector)
+	registerCollector("dhcp", createDHCPCollectorFactory)
 }
 
 type dhcpCollector struct {
@@ -22,8 +22,18 @@ type dhcpCollector struct {
 	dhcpStatus *prometheus.Desc
 }
 
-func newDHCPCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+type dhcpStatusMetric struct {
+	ID     string
+	Name   string
+	Status float64
+}
+
+func createDHCPCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newDHCPCollector(nsxtClient, logger)
+}
+
+func newDHCPCollector(dhcpClient client.DHCPClient, logger log.Logger) *dhcpCollector {
 	dhcpStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "dhcp", "status"),
 		"Status of DCHP UP/DOWN",
@@ -31,7 +41,7 @@ func newDHCPCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.C
 		nil,
 	)
 	return &dhcpCollector{
-		dhcpClient: nsxtClient,
+		dhcpClient: dhcpClient,
 		logger:     logger,
 		dhcpStatus: dhcpStatus,
 	}
@@ -45,12 +55,12 @@ func (dc *dhcpCollector) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements the prometheus.Collector interface.
 func (dc *dhcpCollector) Collect(ch chan<- prometheus.Metric) {
 	dhcpStatusMetrics := dc.generateDHCPStatusMetrics()
-	for _, dhcpStatusMetric := range dhcpStatusMetrics {
-		ch <- dhcpStatusMetric
+	for _, m := range dhcpStatusMetrics {
+		ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, m.Status, m.ID, m.Name)
 	}
 }
 
-func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []prometheus.Metric) {
+func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []dhcpStatusMetric) {
 	var dhcps []manager.LogicalDhcpServer
 	var cursor string
 	for {
@@ -75,11 +85,15 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []promet
 		}
 		var status float64
 		if strings.ToUpper(dhcpStatus.ServiceStatus) == "UP" {
-			status = 1
+			status = 1.0
 		} else {
-			status = 0
+			status = 0.0
 		}
-		dhcpStatusMetric := prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, status, dhcp.Id, dhcp.DisplayName)
+		dhcpStatusMetric := dhcpStatusMetric{
+			Name:   dhcp.DisplayName,
+			ID:     dhcp.Id,
+			Status: status,
+		}
 		dhcpStatusMetrics = append(dhcpStatusMetrics, dhcpStatusMetric)
 	}
 	return
