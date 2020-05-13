@@ -26,7 +26,6 @@ type edgeClusterMembership struct {
 type transportNodeCollector struct {
 	transportNodeClient client.TransportNodeClient
 	logger              log.Logger
-	edgeClusterMap      map[string]edgeClusterMembership
 
 	edgeClusterMembership *prometheus.Desc
 }
@@ -77,7 +76,12 @@ func (c *transportNodeCollector) generateTransportNodeMetrics() (transportNodeMe
 		}
 	}
 
-	c.initEdgeClusterMap()
+	edgeClusterMap, err := c.initEdgeClusterMap()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to initalize edge cluster map", "err", err)
+		return
+	}
+
 	for _, transportNode := range transportNodes {
 		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id)
 		if err != nil {
@@ -92,7 +96,7 @@ func (c *transportNodeCollector) generateTransportNodeMetrics() (transportNodeMe
 		}
 
 		var transportNodeType string
-		if e, ok := c.edgeClusterMap[transportNode.Id]; ok {
+		if e, ok := edgeClusterMap[transportNode.Id]; ok {
 			edgeClusterMembershipMetric := prometheus.MustNewConstMetric(c.edgeClusterMembership, prometheus.GaugeValue, 1.0, transportNode.Id, e.edgeClusterID, e.edgeMemberIndex)
 			transportNodeMetrics = append(transportNodeMetrics, edgeClusterMembershipMetric)
 			transportNodeType = "edge"
@@ -128,14 +132,14 @@ func (c *transportNodeCollector) buildTransportZoneEndpointLabels(transportZoneE
 	return labels
 }
 
-func (c *transportNodeCollector) initEdgeClusterMap() error {
+func (c *transportNodeCollector) initEdgeClusterMap() (map[string]edgeClusterMembership, error) {
 	edgeClusterMap := make(map[string]edgeClusterMembership)
-	edgeClusters, err := c.transportNodeClient.ListEdgeClusters()
+	edgeClusters, err := c.transportNodeClient.ListAllEdgeClusters()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, ec := range edgeClusters.Results {
+	for _, ec := range edgeClusters {
 		for _, member := range ec.Members {
 			edgeClusterMembership := edgeClusterMembership{
 				edgeMemberIndex: strconv.Itoa(int(member.MemberIndex)),
@@ -144,6 +148,5 @@ func (c *transportNodeCollector) initEdgeClusterMap() error {
 			edgeClusterMap[member.TransportNodeId] = edgeClusterMembership
 		}
 	}
-	c.edgeClusterMap = edgeClusterMap
-	return nil
+	return edgeClusterMap, nil
 }

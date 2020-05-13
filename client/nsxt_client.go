@@ -64,9 +64,23 @@ func (c *nsxtClient) GetTransportNodeStatus(nodeID string) (manager.TransportNod
 	return transportNodeStatus, err
 }
 
-func (c *nsxtClient) ListEdgeClusters() (manager.EdgeClusterListResult, error) {
-	edgeClustersResult, _, err := c.apiClient.NetworkTransportApi.ListEdgeClusters(c.apiClient.Context, nil)
-	return edgeClustersResult, err
+func (c *nsxtClient) ListAllEdgeClusters() ([]manager.EdgeCluster, error) {
+	var edgeClusters []manager.EdgeCluster
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		res, _, err := c.apiClient.NetworkTransportApi.ListEdgeClusters(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		edgeClusters = append(edgeClusters, res.Results...)
+		cursor = res.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return edgeClusters, nil
 }
 
 func (c *nsxtClient) ReadClusterStatus() (administration.ClusterStatus, error) {
