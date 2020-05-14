@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	registerCollector("logical_switch", newLogicalSwitchCollector)
+	registerCollector("logical_switch", createLogicalSwitchFactory)
 }
 
 type logicalSwitchCollector struct {
@@ -23,8 +23,19 @@ type logicalSwitchCollector struct {
 	logicalSwitchStatus *prometheus.Desc
 }
 
-func newLogicalSwitchCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+type logicalSwitchStatusMetric struct {
+	ID              string
+	Name            string
+	TransportZoneID string
+	Status          float64
+}
+
+func createLogicalSwitchFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newLogicalSwitchCollector(nsxtClient, logger)
+}
+
+func newLogicalSwitchCollector(lswitchClient client.LogicalSwitchClient, logger log.Logger) *logicalSwitchCollector {
 	logicalSwitchStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_switch", "status"),
 		"Status of logical switch success/other",
@@ -32,7 +43,7 @@ func newLogicalSwitchCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 		nil,
 	)
 	return &logicalSwitchCollector{
-		logicalSwitchClient: nsxtClient,
+		logicalSwitchClient: lswitchClient,
 		logger:              logger,
 		logicalSwitchStatus: logicalSwitchStatus,
 	}
@@ -45,13 +56,14 @@ func (c *logicalSwitchCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *logicalSwitchCollector) Collect(ch chan<- prometheus.Metric) {
-	metrics := c.generateLogicalSwitchStatusMetrics()
-	for _, metric := range metrics {
-		ch <- metric
+	lswitchStatusMetrics := c.generateLogicalSwitchStatusMetrics()
+	for _, m := range lswitchStatusMetrics {
+		labels := []string{m.ID, m.Name, m.TransportZoneID}
+		ch <- prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, m.Status, labels...)
 	}
 }
 
-func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSwitchMetrics []prometheus.Metric) {
+func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSwitchStatusMetrics []logicalSwitchStatusMetric) {
 	var logicalSwitches []manager.LogicalSwitch
 	var cursor string
 	for {
@@ -80,9 +92,13 @@ func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSw
 		} else {
 			status = 0
 		}
-		labels := []string{logicalSwitch.Id, logicalSwitch.DisplayName, logicalSwitch.TransportZoneId}
-		logicalSwitchStatusMetric := prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, status, labels...)
-		logicalSwitchMetrics = append(logicalSwitchMetrics, logicalSwitchStatusMetric)
+		logicalSwitchStatusMetric := logicalSwitchStatusMetric{
+			ID:              logicalSwitch.Id,
+			Name:            logicalSwitch.DisplayName,
+			TransportZoneID: logicalSwitch.TransportZoneId,
+			Status:          status,
+		}
+		logicalSwitchStatusMetrics = append(logicalSwitchStatusMetrics, logicalSwitchStatusMetric)
 	}
 	return
 }
