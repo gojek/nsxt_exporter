@@ -116,7 +116,7 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 			logicalPortListError: errors.New("error list logical ports"),
 			logicalPortResponses: []mockLogicalPortResponse{
 				buildLogicalPortResponse("01", "UP", nil),
-				buildLogicalPortResponse("02", "UP", errors.New("error get logical port status")),
+				buildLogicalPortResponse("02", "UP", nil),
 			},
 			expectedMetrics: []logicalPortStatusMetric{},
 		}, {
