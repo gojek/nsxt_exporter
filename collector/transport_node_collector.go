@@ -19,6 +19,7 @@ func init() {
 }
 
 type edgeClusterMembership struct {
+	transportNodeID string
 	edgeMemberIndex string
 	edgeClusterID   string
 }
@@ -52,21 +53,34 @@ func (c *transportNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
-	transportNodeMetrics := c.generateTransportNodeMetrics()
+	edgeClusterMemberships, err := c.generateEdgeClusterMemberships()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to generate edge cluster membership", "err", err)
+	}
+	for _, membership := range edgeClusterMemberships {
+		ch <- c.buildEdgeClusterMembershipMetrics(membership)
+	}
+	transportNodeMetrics := c.generateTransportNodeMetrics(edgeClusterMemberships)
 	for _, metric := range transportNodeMetrics {
 		ch <- metric
 	}
 }
 
-func (c *transportNodeCollector) generateTransportNodeMetrics() (transportNodeMetrics []prometheus.Metric) {
+func (c *transportNodeCollector) buildEdgeClusterMembershipMetrics(membership edgeClusterMembership) prometheus.Metric {
+	return prometheus.MustNewConstMetric(
+		c.edgeClusterMembership,
+		prometheus.GaugeValue,
+		1.0,
+		membership.transportNodeID,
+		membership.edgeClusterID,
+		membership.edgeMemberIndex,
+	)
+}
+
+func (c *transportNodeCollector) generateTransportNodeMetrics(edgeClusterMemberships []edgeClusterMembership) (transportNodeMetrics []prometheus.Metric) {
 	transportNodes, err := c.transportNodeClient.ListAllTransportNodes()
 	if err != nil {
 		level.Error(c.logger).Log("msg", "Unable to list transport nodes", "err", err)
-		return
-	}
-	edgeClusterMap, err := c.initEdgeClusterMap()
-	if err != nil {
-		level.Error(c.logger).Log("msg", "Unable to initalize edge cluster map", "err", err)
 		return
 	}
 
@@ -83,13 +97,13 @@ func (c *transportNodeCollector) generateTransportNodeMetrics() (transportNodeMe
 			status = 0
 		}
 
-		var transportNodeType string
-		if e, ok := edgeClusterMap[transportNode.Id]; ok {
-			edgeClusterMembershipMetric := prometheus.MustNewConstMetric(c.edgeClusterMembership, prometheus.GaugeValue, 1.0, transportNode.Id, e.edgeClusterID, e.edgeMemberIndex)
-			transportNodeMetrics = append(transportNodeMetrics, edgeClusterMembershipMetric)
-			transportNodeType = "edge"
-		} else {
-			transportNodeType = "host"
+		// TODO, when generateEdgeClusterMemberships is failed, should not fill type
+		transportNodeType := "host"
+		for _, membership := range edgeClusterMemberships {
+			if membership.transportNodeID == transportNode.Id {
+				transportNodeType = "edge"
+				break
+			}
 		}
 
 		transportZoneLabels := c.buildTransportZoneEndpointLabels(transportNode.TransportZoneEndpoints)
@@ -120,8 +134,8 @@ func (c *transportNodeCollector) buildTransportZoneEndpointLabels(transportZoneE
 	return labels
 }
 
-func (c *transportNodeCollector) initEdgeClusterMap() (map[string]edgeClusterMembership, error) {
-	edgeClusterMap := make(map[string]edgeClusterMembership)
+func (c *transportNodeCollector) generateEdgeClusterMemberships() ([]edgeClusterMembership, error) {
+	var edgeClusterMemberships []edgeClusterMembership
 	edgeClusters, err := c.transportNodeClient.ListAllEdgeClusters()
 	if err != nil {
 		return nil, err
@@ -130,11 +144,12 @@ func (c *transportNodeCollector) initEdgeClusterMap() (map[string]edgeClusterMem
 	for _, ec := range edgeClusters {
 		for _, member := range ec.Members {
 			edgeClusterMembership := edgeClusterMembership{
+				transportNodeID: member.TransportNodeId,
 				edgeMemberIndex: strconv.Itoa(int(member.MemberIndex)),
 				edgeClusterID:   ec.Id,
 			}
-			edgeClusterMap[member.TransportNodeId] = edgeClusterMembership
+			edgeClusterMemberships = append(edgeClusterMemberships, edgeClusterMembership)
 		}
 	}
-	return edgeClusterMap, nil
+	return edgeClusterMemberships, nil
 }
