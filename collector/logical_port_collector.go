@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	registerCollector("logical_port", newLogicalPortCollector)
+	registerCollector("logical_port", createLogicalPortCollectorFactory)
 }
 
 type logicalPortCollector struct {
@@ -23,8 +23,19 @@ type logicalPortCollector struct {
 	logicalPortStatus *prometheus.Desc
 }
 
-func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+type logicalPortStatusMetric struct {
+	ID              string
+	Name            string
+	Status          float64
+	LogicalSwitchID string
+}
+
+func createLogicalPortCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newLogicalPortCollector(nsxtClient, logger)
+}
+
+func newLogicalPortCollector(logicalPortClient client.LogicalPortClient, logger log.Logger) *logicalPortCollector {
 	logicalPortStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_port", "status"),
 		"Status of logical port UP/DOWN",
@@ -32,7 +43,7 @@ func newLogicalPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prome
 		nil,
 	)
 	return &logicalPortCollector{
-		logicalPortClient: nsxtClient,
+		logicalPortClient: logicalPortClient,
 		logger:            logger,
 
 		logicalPortStatus: logicalPortStatus,
@@ -48,11 +59,18 @@ func (lpc *logicalPortCollector) Describe(ch chan<- *prometheus.Desc) {
 func (lpc *logicalPortCollector) Collect(ch chan<- prometheus.Metric) {
 	lportStatusMetrics := lpc.generateLogicalPortStatusMetrics()
 	for _, lportStatusMetric := range lportStatusMetrics {
-		ch <- lportStatusMetric
+		ch <- prometheus.MustNewConstMetric(
+			lpc.logicalPortStatus,
+			prometheus.GaugeValue,
+			lportStatusMetric.Status,
+			lportStatusMetric.ID,
+			lportStatusMetric.Name,
+			lportStatusMetric.LogicalSwitchID,
+		)
 	}
 }
 
-func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatusMetrics []prometheus.Metric) {
+func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatusMetrics []logicalPortStatusMetric) {
 	var lports []manager.LogicalPort
 	var cursor string
 	for {
@@ -81,7 +99,12 @@ func (lpc *logicalPortCollector) generateLogicalPortStatusMetrics() (lportStatus
 		} else {
 			status = 0
 		}
-		lportStatusMetric := prometheus.MustNewConstMetric(lpc.logicalPortStatus, prometheus.GaugeValue, status, lport.Id, lport.DisplayName, lport.LogicalSwitchId)
+		lportStatusMetric := logicalPortStatusMetric{
+			ID:              lport.Id,
+			Name:            lport.DisplayName,
+			Status:          status,
+			LogicalSwitchID: lport.LogicalSwitchId,
+		}
 		lportStatusMetrics = append(lportStatusMetrics, lportStatusMetric)
 	}
 	return
