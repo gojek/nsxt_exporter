@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	registerCollector("logical_router_port", newLogicalRouterPortCollector)
+	registerCollector("logical_router_port", createLogicalRouterPortCollectorFactory)
 }
 
 type logicalRouterPortCollector struct {
@@ -32,8 +32,12 @@ type logicalRouterPortStatisticMetric struct {
 	Tx                *manager.LogicalRouterPortCounters
 }
 
-func newLogicalRouterPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func createLogicalRouterPortCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newLogicalRouterPortCollector(nsxtClient, logger)
+}
+
+func newLogicalRouterPortCollector(logicalRouterPortClient client.LogicalRouterPortClient, logger log.Logger) *logicalRouterPortCollector {
 	rxTotalPacket := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_router_port", "rx_total_packet"),
 		"Total packets received (rx) of logical router port",
@@ -71,7 +75,7 @@ func newLogicalRouterPortCollector(apiClient *nsxt.APIClient, logger log.Logger)
 		nil,
 	)
 	return &logicalRouterPortCollector{
-		logicalRouterPortClient: nsxtClient,
+		logicalRouterPortClient: logicalRouterPortClient,
 		logger:                  logger,
 		rxTotalPacket:           rxTotalPacket,
 		rxTotalByte:             rxTotalByte,
