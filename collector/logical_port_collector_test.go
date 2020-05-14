@@ -69,11 +69,13 @@ func buildLogicalPortResponse(id string, status string, err error) mockLogicalPo
 
 func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 	testcases := []struct {
+		description          string
 		logicalPortListError error
 		logicalPortResponses []mockLogicalPortResponse
 		expectedMetrics      []logicalPortStatusMetric
 	}{
 		{
+			description:          "Should return correct status metrics",
 			logicalPortListError: nil,
 			logicalPortResponses: []mockLogicalPortResponse{
 				buildLogicalPortResponse("01", "UP", nil),
@@ -99,6 +101,7 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 				},
 			},
 		}, {
+			description:          "Should only return logical port with valid response",
 			logicalPortListError: nil,
 			logicalPortResponses: []mockLogicalPortResponse{
 				buildLogicalPortResponse("01", "UP", nil),
@@ -113,6 +116,7 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 				},
 			},
 		}, {
+			description:          "Should return empty metrics when fail to list logical port",
 			logicalPortListError: errors.New("error list logical ports"),
 			logicalPortResponses: []mockLogicalPortResponse{
 				buildLogicalPortResponse("01", "UP", nil),
@@ -120,6 +124,7 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []logicalPortStatusMetric{},
 		}, {
+			description:          "Should return empty metrics when there's no logical router port",
 			logicalPortListError: nil,
 			logicalPortResponses: []mockLogicalPortResponse{},
 			expectedMetrics:      []logicalPortStatusMetric{},
@@ -133,6 +138,6 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 		logger := log.NewNopLogger()
 		logicalPortCollector := newLogicalPortCollector(mockLogicalPortClient, logger)
 		logicalPortMetrics := logicalPortCollector.generateLogicalPortStatusMetrics()
-		assert.ElementsMatch(t, testcase.expectedMetrics, logicalPortMetrics)
+		assert.ElementsMatch(t, testcase.expectedMetrics, logicalPortMetrics, testcase.description)
 	}
 }
