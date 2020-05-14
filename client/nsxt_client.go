@@ -49,9 +49,23 @@ func (c *nsxtClient) GetDhcpStatus(dhcpID string, localVarOptionals map[string]i
 	return dhcpServerStatus, err
 }
 
-func (c *nsxtClient) ListTransportNodes(localVarOptionals map[string]interface{}) (manager.TransportNodeListResult, error) {
-	transportNodeStatus, _, err := c.apiClient.NetworkTransportApi.ListTransportNodes(c.apiClient.Context, localVarOptionals)
-	return transportNodeStatus, err
+func (c *nsxtClient) ListAllTransportNodes() ([]manager.TransportNode, error) {
+	var transportNodes []manager.TransportNode
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		transportNodesResult, _, err := c.apiClient.NetworkTransportApi.ListTransportNodes(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		transportNodes = append(transportNodes, transportNodesResult.Results...)
+		cursor = transportNodesResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return transportNodes, nil
 }
 
 func (c *nsxtClient) GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error) {

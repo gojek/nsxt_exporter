@@ -59,23 +59,11 @@ func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (c *transportNodeCollector) generateTransportNodeMetrics() (transportNodeMetrics []prometheus.Metric) {
-	var transportNodes []manager.TransportNode
-	var cursor string
-	for {
-		localVarOptionals := make(map[string]interface{})
-		localVarOptionals["cursor"] = cursor
-		transportNodesResult, err := c.transportNodeClient.ListTransportNodes(localVarOptionals)
-		if err != nil {
-			level.Error(c.logger).Log("msg", "Unable to list transport nodes", "err", err)
-			return
-		}
-		transportNodes = append(transportNodes, transportNodesResult.Results...)
-		cursor = transportNodesResult.Cursor
-		if len(cursor) == 0 {
-			break
-		}
+	transportNodes, err := c.transportNodeClient.ListAllTransportNodes()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to list transport nodes", "err", err)
+		return
 	}
-
 	edgeClusterMap, err := c.initEdgeClusterMap()
 	if err != nil {
 		level.Error(c.logger).Log("msg", "Unable to initalize edge cluster map", "err", err)
