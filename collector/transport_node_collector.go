@@ -55,6 +55,7 @@ func (c *transportNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	edgeClusterMemberships, err := c.generateEdgeClusterMemberships()
 	if err != nil {
+		edgeClusterMemberships = nil
 		level.Error(c.logger).Log("msg", "Unable to generate edge cluster membership", "err", err)
 	}
 	for _, membership := range edgeClusterMemberships {
@@ -97,8 +98,10 @@ func (c *transportNodeCollector) generateTransportNodeMetrics(edgeClusterMembers
 			status = 0
 		}
 
-		// TODO, when generateEdgeClusterMemberships is failed, should not fill type
-		transportNodeType := "host"
+		var transportNodeType string
+		if edgeClusterMemberships != nil {
+			transportNodeType = "host"
+		}
 		for _, membership := range edgeClusterMemberships {
 			if membership.transportNodeID == transportNode.Id {
 				transportNodeType = "edge"
