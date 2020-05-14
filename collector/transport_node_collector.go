@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	registerCollector("transport_node", newTransportNodeCollector)
+	registerCollector("transport_node", createTransportNodeCollectorFactory)
 }
 
 type edgeClusterMembership struct {
@@ -31,8 +31,12 @@ type transportNodeCollector struct {
 	edgeClusterMembership *prometheus.Desc
 }
 
-func newTransportNodeCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+func createTransportNodeCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newTransportNodeCollector(nsxtClient, logger)
+}
+
+func newTransportNodeCollector(transportNodeClient client.TransportNodeClient, logger log.Logger) *transportNodeCollector {
 	edgeClusterMembership := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_node", "edge_cluster_membership"),
 		"Membership info of Transport Node in an Edge Cluster",
@@ -40,7 +44,7 @@ func newTransportNodeCollector(apiClient *nsxt.APIClient, logger log.Logger) pro
 		nil,
 	)
 	return &transportNodeCollector{
-		transportNodeClient:   nsxtClient,
+		transportNodeClient:   transportNodeClient,
 		logger:                logger,
 		edgeClusterMembership: edgeClusterMembership,
 	}
