@@ -13,6 +13,7 @@ import (
 const (
 	fakeLogicalRouterPortID          = "fake-logical-router-port-id"
 	fakeLogicalRouterPortDisplayName = "fake-logical-router-port-name"
+	fakeLogicalRouterID              = "fake-logical-router-id"
 )
 
 type mockLogicalRouterPortClient struct {
@@ -21,9 +22,10 @@ type mockLogicalRouterPortClient struct {
 }
 
 type mockLogicalRouterPortResponse struct {
-	ID          string
-	DisplayName string
-	Error       error
+	ID              string
+	DisplayName     string
+	LogicalRouterID string
+	Error           error
 
 	RxTotalBytes     int64
 	RxTotalPackets   int64
@@ -40,8 +42,9 @@ func (c *mockLogicalRouterPortClient) ListAllLogicalRouterPorts() ([]manager.Log
 	var logicalRouterPorts []manager.LogicalRouterPort
 	for _, response := range c.responses {
 		logicalRouterPort := manager.LogicalRouterPort{
-			Id:          response.ID,
-			DisplayName: response.DisplayName,
+			Id:              response.ID,
+			DisplayName:     response.DisplayName,
+			LogicalRouterId: response.LogicalRouterID,
 		}
 		logicalRouterPorts = append(logicalRouterPorts, logicalRouterPort)
 	}
@@ -72,6 +75,7 @@ func buildLogicalRouterPortResponse(id string, baseValue int64, err error) mockL
 	return mockLogicalRouterPortResponse{
 		ID:               fmt.Sprintf("%s-%s", fakeLogicalRouterPortID, id),
 		DisplayName:      fmt.Sprintf("%s-%s", fakeLogicalRouterPortDisplayName, id),
+		LogicalRouterID:  fmt.Sprintf("%s-%s", fakeLogicalRouterID, id),
 		Error:            err,
 		RxTotalBytes:     baseValue * 3,
 		RxTotalPackets:   baseValue * 3,
@@ -99,8 +103,9 @@ func TestLogicalRouterPortCollector_GenerateLogicalRouterPortStatisticMetrics(t 
 			expectedMetrics: []logicalRouterPortStatisticMetric{
 				{
 					LogicalRouterPort: manager.LogicalRouterPort{
-						Id:          "fake-logical-router-port-id-01",
-						DisplayName: "fake-logical-router-port-name-01",
+						Id:              "fake-logical-router-port-id-01",
+						DisplayName:     "fake-logical-router-port-name-01",
+						LogicalRouterId: "fake-logical-router-id-01",
 					},
 					Rx: &manager.LogicalRouterPortCounters{
 						TotalBytes:     6,
@@ -114,8 +119,9 @@ func TestLogicalRouterPortCollector_GenerateLogicalRouterPortStatisticMetrics(t 
 					},
 				}, {
 					LogicalRouterPort: manager.LogicalRouterPort{
-						Id:          "fake-logical-router-port-id-02",
-						DisplayName: "fake-logical-router-port-name-02",
+						Id:              "fake-logical-router-port-id-02",
+						DisplayName:     "fake-logical-router-port-name-02",
+						LogicalRouterId: "fake-logical-router-id-02",
 					},
 					Rx: &manager.LogicalRouterPortCounters{
 						TotalBytes:     9,
@@ -139,8 +145,9 @@ func TestLogicalRouterPortCollector_GenerateLogicalRouterPortStatisticMetrics(t 
 			expectedMetrics: []logicalRouterPortStatisticMetric{
 				{
 					LogicalRouterPort: manager.LogicalRouterPort{
-						Id:          "fake-logical-router-port-id-01",
-						DisplayName: "fake-logical-router-port-name-01",
+						Id:              "fake-logical-router-port-id-01",
+						DisplayName:     "fake-logical-router-port-name-01",
+						LogicalRouterId: "fake-logical-router-id-01",
 					},
 					Rx: &manager.LogicalRouterPortCounters{
 						TotalBytes:     6,
