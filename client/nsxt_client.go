@@ -29,9 +29,23 @@ func (c *nsxtClient) GetLogicalPortOperationalStatus(lportId string, localVarOpt
 	return lportStatus, err
 }
 
-func (c *nsxtClient) ListLogicalRouterPorts(localVarOptionals map[string]interface{}) (manager.LogicalRouterPortListResult, error) {
-	lroutersResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.ListLogicalRouterPorts(c.apiClient.Context, localVarOptionals)
-	return lroutersResult, err
+func (c *nsxtClient) ListAllLogicalRouterPorts() ([]manager.LogicalRouterPort, error) {
+	var logicalRouterPorts []manager.LogicalRouterPort
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		logicalRouterPortsResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.ListLogicalRouterPorts(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		logicalRouterPorts = append(logicalRouterPorts, logicalRouterPortsResult.Results...)
+		cursor = logicalRouterPortsResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return logicalRouterPorts, nil
 }
 
 func (c *nsxtClient) GetLogicalRouterPortStatisticsSummary(lrportID string) (manager.LogicalRouterPortStatisticsSummary, error) {

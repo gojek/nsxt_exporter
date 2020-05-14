@@ -26,22 +26,10 @@ type logicalRouterPortCollector struct {
 	txTotalByte     *prometheus.Desc
 }
 
-type logicalRouterPort struct {
-	ID              string
-	Name            string
-	LogicalRouterID string
-}
-
 type logicalRouterPortStatisticMetric struct {
-	LogicalRouterPort logicalRouterPort
-	Rx                logicalRouterPortPacketCounter
-	Tx                logicalRouterPortPacketCounter
-}
-
-type logicalRouterPortPacketCounter struct {
-	DroppedPackets float64
-	TotalBytes     float64
-	TotalPackets   float64
+	LogicalRouterPort manager.LogicalRouterPort
+	Rx                *manager.LogicalRouterPortCounters
+	Tx                *manager.LogicalRouterPortCounters
 }
 
 func newLogicalRouterPortCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -108,61 +96,43 @@ func (c *logicalRouterPortCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *logicalRouterPortCollector) Collect(ch chan<- prometheus.Metric) {
 	logicalRouterPortStatisticMetrics := c.generateLogicalRouterPortStatisticMetrics()
 	for _, metric := range logicalRouterPortStatisticMetrics {
-		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.rxTotalPacket, metric.Rx.TotalPackets)
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.rxTotalPacket, float64(metric.Rx.TotalPackets))
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.rxDroppedPacket, float64(metric.Rx.DroppedPackets))
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.rxTotalByte, float64(metric.Rx.TotalBytes))
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.txTotalPacket, float64(metric.Tx.TotalPackets))
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.txDroppedPacket, float64(metric.Tx.DroppedPackets))
+		ch <- c.buildLogicalRouterPortMetric(metric.LogicalRouterPort, c.txTotalByte, float64(metric.Tx.TotalBytes))
 	}
 }
 
-func (c *logicalRouterPortCollector) buildLogicalRouterPortMetric(logicalRouterPort logicalRouterPort, desc *prometheus.Desc, value float64) prometheus.Metric {
+func (c *logicalRouterPortCollector) buildLogicalRouterPortMetric(logicalRouterPort manager.LogicalRouterPort, desc *prometheus.Desc, value float64) prometheus.Metric {
 	return prometheus.MustNewConstMetric(
 		desc,
 		prometheus.GaugeValue,
 		value,
-		logicalRouterPort.ID,
-		logicalRouterPort.Name,
-		logicalRouterPort.LogicalRouterID,
+		logicalRouterPort.Id,
+		logicalRouterPort.DisplayName,
+		logicalRouterPort.LogicalRouterId,
 	)
 }
 
 func (c *logicalRouterPortCollector) generateLogicalRouterPortStatisticMetrics() (logicalRouterPortStatisticMetrics []logicalRouterPortStatisticMetric) {
-	var logicalRouterPorts []manager.LogicalRouterPort
-	var cursor string
-	for {
-		localVarOptionals := make(map[string]interface{})
-		localVarOptionals["cursor"] = cursor
-		logicalRouterPortsResult, err := c.logicalRouterPortClient.ListLogicalRouterPorts(localVarOptionals)
-		if err != nil {
-			level.Error(c.logger).Log("msg", "Unable to list logical ports", "err", err)
-			return
-		}
-		logicalRouterPorts = append(logicalRouterPorts, logicalRouterPortsResult.Results...)
-		cursor = logicalRouterPortsResult.Cursor
-		if len(cursor) == 0 {
-			break
-		}
+	logicalRouterPorts, err := c.logicalRouterPortClient.ListAllLogicalRouterPorts()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to list logical ports", "err", err)
+		return
 	}
 
-	for _, logicalRouterPortData := range logicalRouterPorts {
-		statistic, err := c.logicalRouterPortClient.GetLogicalRouterPortStatisticsSummary(logicalRouterPortData.Id)
+	for _, logicalRouterPort := range logicalRouterPorts {
+		statistic, err := c.logicalRouterPortClient.GetLogicalRouterPortStatisticsSummary(logicalRouterPort.Id)
 		if err != nil {
-			level.Error(c.logger).Log("msg", "Unable to get logical router port statistics", "id", logicalRouterPortData.Id, "err", err)
+			level.Error(c.logger).Log("msg", "Unable to get logical router port statistics", "id", logicalRouterPort.Id, "err", err)
 			continue
 		}
 		logicalRouterPortStatisticMetric := logicalRouterPortStatisticMetric{
-			LogicalRouterPort: logicalRouterPort{
-				ID:              logicalRouterPortData.Id,
-				Name:            logicalRouterPortData.DisplayName,
-				LogicalRouterID: logicalRouterPortData.LogicalRouterId,
-			},
-			Rx: logicalRouterPortPacketCounter{
-				TotalPackets:   float64(statistic.Rx.TotalPackets),
-				DroppedPackets: float64(statistic.Rx.DroppedPackets),
-				TotalBytes:     float64(statistic.Rx.TotalBytes),
-			},
-			Tx: logicalRouterPortPacketCounter{
-				TotalPackets:   float64(statistic.Tx.TotalPackets),
-				DroppedPackets: float64(statistic.Tx.DroppedPackets),
-				TotalBytes:     float64(statistic.Tx.TotalBytes),
-			},
+			LogicalRouterPort: logicalRouterPort,
+			Rx:                statistic.Rx,
+			Tx:                statistic.Tx,
 		}
 		logicalRouterPortStatisticMetrics = append(logicalRouterPortStatisticMetrics, logicalRouterPortStatisticMetric)
 	}
