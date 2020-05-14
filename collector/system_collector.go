@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	registerCollector("system", newSystemCollector)
+	registerCollector("system", createSystemCollectorFactory)
 }
 
 type systemCollector struct {
@@ -23,8 +23,18 @@ type systemCollector struct {
 	applianceManagementServiceStatus *prometheus.Desc
 }
 
-func newSystemCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
+type systemStatusMetric struct {
+	IPAddress string
+	Type      string
+	Status    float64
+}
+
+func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
+	return newSystemCollector(nsxtClient, logger)
+}
+
+func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *systemCollector {
 	clusterStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "cluster", "status"),
 		"Status of NSX-T system controller and management cluster.",
@@ -44,7 +54,7 @@ func newSystemCollector(apiClient *nsxt.APIClient, logger log.Logger) prometheus
 		nil,
 	)
 	return &systemCollector{
-		systemClient: nsxtClient,
+		systemClient: systemClient,
 		logger:       logger,
 
 		clusterStatus:                    clusterStatus,
@@ -62,27 +72,40 @@ func (sc *systemCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
-	sc.collectClusterStatusMetric(ch)
-	sc.collectClusterNodeMetric(ch)
-	sc.collectClusterServiceMetric(ch)
+	statusMetrics := sc.collectClusterStatusMetrics()
+	for _, sm := range statusMetrics {
+		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, sm.Status)
+	}
+
+	nodeMetrics := sc.collectClusterNodeMetrics()
+	for _, nm := range nodeMetrics {
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
+	}
+
+	serviceMetrics := sc.collectClusterServiceMetrics()
+	for _, svm := range serviceMetrics {
+		ch <- prometheus.MustNewConstMetric(sc.applianceManagementServiceStatus, prometheus.GaugeValue, svm.Status)
+	}
 }
 
-func (sc *systemCollector) collectClusterStatusMetric(ch chan<- prometheus.Metric) {
+func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
 	clusterStatus, err := sc.systemClient.ReadClusterStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster status")
 		return
 	}
-
+	systemStatusMetric := systemStatusMetric{
+		Status: 0.0,
+	}
 	if strings.ToUpper(clusterStatus.ControlClusterStatus.Status) == "STABLE" &&
 		strings.ToUpper(clusterStatus.MgmtClusterStatus.Status) == "STABLE" {
-		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, 1.0)
-	} else {
-		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, 0.0)
+		systemStatusMetric.Status = 1.0
 	}
+	systemStatusMetrics = append(systemStatusMetrics, systemStatusMetric)
+	return
 }
 
-func (sc *systemCollector) collectClusterNodeMetric(ch chan<- prometheus.Metric) {
+func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []systemStatusMetric) {
 	clusterNodesStatus, err := sc.systemClient.ReadClusterNodesAggregateStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster nodes status")
@@ -90,35 +113,45 @@ func (sc *systemCollector) collectClusterNodeMetric(ch chan<- prometheus.Metric)
 	}
 
 	for _, c := range clusterNodesStatus.ControllerCluster {
-		ipAddress := c.RoleConfig.ControlPlaneListenAddr.IpAddress
+		controllerStatusMetric := systemStatusMetric{
+			IPAddress: c.RoleConfig.ControlPlaneListenAddr.IpAddress,
+			Type:      "controller",
+			Status:    0.0,
+		}
 		if strings.ToUpper(c.NodeStatus.ControlClusterStatus.ControlClusterStatus) == "CONNECTED" &&
 			strings.ToUpper(c.NodeStatus.ControlClusterStatus.MgmtConnectionStatus.ConnectivityStatus) == "CONNECTED" {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, 1.0, ipAddress, "controller")
-		} else {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, 0.0, ipAddress, "controller")
+			controllerStatusMetric.Status = 1.0
 		}
+		systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetric)
 	}
 
 	for _, m := range clusterNodesStatus.ManagementCluster {
-		ipAddress := m.RoleConfig.MgmtPlaneListenAddr.IpAddress
-		if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == "CONNECTED" {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, 1.0, ipAddress, "management")
-		} else {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, 0.0, ipAddress, "management")
+		managementStatusMetric := systemStatusMetric{
+			IPAddress: m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
+			Type:      "management",
+			Status:    0.0,
 		}
+		if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == "CONNECTED" {
+			managementStatusMetric.Status = 1.0
+		}
+		systemStatusMetrics = append(systemStatusMetrics, managementStatusMetric)
 	}
+	return
 }
 
-func (sc *systemCollector) collectClusterServiceMetric(ch chan<- prometheus.Metric) {
+func (sc *systemCollector) collectClusterServiceMetrics() (systemStatusMetrics []systemStatusMetric) {
 	applianceStatus, err := sc.systemClient.ReadApplianceManagementServiceStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect appliance management service status")
 		return
 	}
 
-	if strings.ToUpper(applianceStatus.RuntimeState) == "RUNNING" {
-		ch <- prometheus.MustNewConstMetric(sc.applianceManagementServiceStatus, prometheus.GaugeValue, 1.0)
-	} else {
-		ch <- prometheus.MustNewConstMetric(sc.applianceManagementServiceStatus, prometheus.GaugeValue, 0.0)
+	applianceStatusMetric := systemStatusMetric{
+		Status: 0.0,
 	}
+	if strings.ToUpper(applianceStatus.RuntimeState) == "RUNNING" {
+		applianceStatusMetric.Status = 1.0
+	}
+	systemStatusMetrics = append(systemStatusMetrics, applianceStatusMetric)
+	return
 }
