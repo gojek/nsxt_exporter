@@ -53,6 +53,11 @@ func (c *transportNodeCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
+	transportNodes, err := c.transportNodeClient.ListAllTransportNodes()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to list transport nodes", "err", err)
+		return
+	}
 	edgeClusterMemberships, err := c.generateEdgeClusterMemberships()
 	if err != nil {
 		edgeClusterMemberships = nil
@@ -61,7 +66,7 @@ func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, membership := range edgeClusterMemberships {
 		ch <- c.buildEdgeClusterMembershipMetrics(membership)
 	}
-	transportNodeMetrics := c.generateTransportNodeMetrics(edgeClusterMemberships)
+	transportNodeMetrics := c.generateTransportNodeMetrics(transportNodes, edgeClusterMemberships)
 	for _, metric := range transportNodeMetrics {
 		ch <- metric
 	}
@@ -78,13 +83,7 @@ func (c *transportNodeCollector) buildEdgeClusterMembershipMetrics(membership ed
 	)
 }
 
-func (c *transportNodeCollector) generateTransportNodeMetrics(edgeClusterMemberships []edgeClusterMembership) (transportNodeMetrics []prometheus.Metric) {
-	transportNodes, err := c.transportNodeClient.ListAllTransportNodes()
-	if err != nil {
-		level.Error(c.logger).Log("msg", "Unable to list transport nodes", "err", err)
-		return
-	}
-
+func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []manager.TransportNode, edgeClusterMemberships []edgeClusterMembership) (transportNodeMetrics []prometheus.Metric) {
 	for _, transportNode := range transportNodes {
 		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id)
 		if err != nil {
