@@ -31,6 +31,14 @@ type transportNodeCollector struct {
 	edgeClusterMembership *prometheus.Desc
 }
 
+type transportNodeMetric struct {
+	ID               string
+	Name             string
+	Status           float64
+	Type             string
+	TransportZoneIDs []string
+}
+
 func createTransportNodeCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	return newTransportNodeCollector(nsxtClient, logger)
@@ -72,7 +80,9 @@ func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	transportNodeMetrics := c.generateTransportNodeMetrics(transportNodes, edgeClusterMemberships)
 	for _, metric := range transportNodeMetrics {
-		ch <- metric
+		transportZoneLabels := c.buildTransportZoneLabels(metric.TransportZoneIDs)
+		desc := c.buildStatusDesc(transportZoneLabels)
+		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, metric.Status, metric.ID, metric.Name, metric.Type)
 	}
 }
 
@@ -87,7 +97,7 @@ func (c *transportNodeCollector) buildEdgeClusterMembershipMetrics(membership ed
 	)
 }
 
-func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []manager.TransportNode, edgeClusterMemberships []edgeClusterMembership) (transportNodeMetrics []prometheus.Metric) {
+func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []manager.TransportNode, edgeClusterMemberships []edgeClusterMembership) (transportNodeMetrics []transportNodeMetric) {
 	for _, transportNode := range transportNodes {
 		transportNodeStatus, err := c.transportNodeClient.GetTransportNodeStatus(transportNode.Id)
 		if err != nil {
@@ -111,11 +121,18 @@ func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []m
 				break
 			}
 		}
-
-		transportZoneLabels := c.buildTransportZoneEndpointLabels(transportNode.TransportZoneEndpoints)
-		desc := c.buildStatusDesc(transportZoneLabels)
-		transportNodeStatusMetric := prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, status, transportNode.Id, transportNode.DisplayName, transportNodeType)
-		transportNodeMetrics = append(transportNodeMetrics, transportNodeStatusMetric)
+		var transportZoneIDs []string
+		for _, endpoint := range transportNode.TransportZoneEndpoints {
+			transportZoneIDs = append(transportZoneIDs, endpoint.TransportZoneId)
+		}
+		transportNodeMetric := transportNodeMetric{
+			ID:               transportNode.Id,
+			Name:             transportNode.DisplayName,
+			Status:           status,
+			Type:             transportNodeType,
+			TransportZoneIDs: transportZoneIDs,
+		}
+		transportNodeMetrics = append(transportNodeMetrics, transportNodeMetric)
 	}
 	return
 }
@@ -129,12 +146,12 @@ func (c *transportNodeCollector) buildStatusDesc(extraLabels prometheus.Labels) 
 	)
 }
 
-func (c *transportNodeCollector) buildTransportZoneEndpointLabels(transportZoneEndpoints []manager.TransportZoneEndPoint) prometheus.Labels {
+func (c *transportNodeCollector) buildTransportZoneLabels(transportZoneIDs []string) prometheus.Labels {
 	labels := make(prometheus.Labels)
-	for _, endpoint := range transportZoneEndpoints {
-		sanitizedID := regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(endpoint.TransportZoneId, "_")
+	for _, transportZoneID := range transportZoneIDs {
+		sanitizedID := regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(transportZoneID, "_")
 		key := "transport_zone_" + sanitizedID
-		value := endpoint.TransportZoneId
+		value := transportZoneID
 		labels[key] = value
 	}
 	return labels
