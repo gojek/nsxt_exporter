@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -28,6 +27,7 @@ type transportNodeCollector struct {
 	transportNodeClient client.TransportNodeClient
 	logger              log.Logger
 
+	transportNodeStatus   *prometheus.Desc
 	edgeClusterMembership *prometheus.Desc
 }
 
@@ -45,6 +45,12 @@ func createTransportNodeCollectorFactory(apiClient *nsxt.APIClient, logger log.L
 }
 
 func newTransportNodeCollector(transportNodeClient client.TransportNodeClient, logger log.Logger) *transportNodeCollector {
+	transportNodeStatus := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "transport_node", "status"),
+		"Status of Transport Node UP/DOWN",
+		[]string{"id", "name", "type", "transport_zone_id"},
+		nil,
+	)
 	edgeClusterMembership := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_node", "edge_cluster_membership"),
 		"Membership info of Transport Node in an Edge Cluster",
@@ -54,12 +60,14 @@ func newTransportNodeCollector(transportNodeClient client.TransportNodeClient, l
 	return &transportNodeCollector{
 		transportNodeClient:   transportNodeClient,
 		logger:                logger,
+		transportNodeStatus:   transportNodeStatus,
 		edgeClusterMembership: edgeClusterMembership,
 	}
 }
 
 // Describe implements the prometheus.Collector interface.
 func (c *transportNodeCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.transportNodeStatus
 	ch <- c.edgeClusterMembership
 }
 
@@ -79,10 +87,10 @@ func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- c.buildEdgeClusterMembershipMetrics(membership)
 	}
 	transportNodeMetrics := c.generateTransportNodeMetrics(transportNodes, edgeClusterMemberships)
-	for _, metric := range transportNodeMetrics {
-		transportZoneLabels := c.buildTransportZoneLabels(metric.TransportZoneIDs)
-		desc := c.buildStatusDesc(transportZoneLabels)
-		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, metric.Status, metric.ID, metric.Name, metric.Type)
+	for _, tnMetric := range transportNodeMetrics {
+		for _, tzID := range tnMetric.TransportZoneIDs {
+			ch <- prometheus.MustNewConstMetric(c.transportNodeStatus, prometheus.GaugeValue, tnMetric.Status, tnMetric.ID, tnMetric.Name, tnMetric.Type, tzID)
+		}
 	}
 }
 
@@ -135,26 +143,6 @@ func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []m
 		transportNodeMetrics = append(transportNodeMetrics, transportNodeMetric)
 	}
 	return
-}
-
-func (c *transportNodeCollector) buildStatusDesc(extraLabels prometheus.Labels) *prometheus.Desc {
-	return prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "transport_node", "status"),
-		"Status of Transport Node UP/DOWN",
-		[]string{"id", "name", "type"},
-		extraLabels,
-	)
-}
-
-func (c *transportNodeCollector) buildTransportZoneLabels(transportZoneIDs []string) prometheus.Labels {
-	labels := make(prometheus.Labels)
-	for _, transportZoneID := range transportZoneIDs {
-		sanitizedID := regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(transportZoneID, "_")
-		key := "transport_zone_" + sanitizedID
-		value := transportZoneID
-		labels[key] = value
-	}
-	return labels
 }
 
 func (c *transportNodeCollector) generateEdgeClusterMemberships() ([]edgeClusterMembership, error) {
