@@ -21,11 +21,9 @@ type mockLogicalSwitchClient struct {
 }
 
 type mockLogicalSwitchResponse struct {
-	ID              string
-	DisplayName     string
-	TransportZoneId string
-	Status          string
-	Error           error
+	logicalSwitch manager.LogicalSwitch
+	Status        string
+	Error         error
 }
 
 func (c *mockLogicalSwitchClient) ListAllLogicalSwitches() ([]manager.LogicalSwitch, error) {
@@ -34,19 +32,14 @@ func (c *mockLogicalSwitchClient) ListAllLogicalSwitches() ([]manager.LogicalSwi
 	}
 	var lswitches []manager.LogicalSwitch
 	for _, res := range c.responses {
-		lswitch := manager.LogicalSwitch{
-			Id:              res.ID,
-			DisplayName:     res.DisplayName,
-			TransportZoneId: res.TransportZoneId,
-		}
-		lswitches = append(lswitches, lswitch)
+		lswitches = append(lswitches, res.logicalSwitch)
 	}
 	return lswitches, nil
 }
 
 func (c *mockLogicalSwitchClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
 	for _, res := range c.responses {
-		if res.ID == lswitchID {
+		if res.logicalSwitch.Id == lswitchID {
 			return manager.LogicalSwitchState{
 				State: res.Status,
 			}, res.Error
@@ -57,11 +50,13 @@ func (c *mockLogicalSwitchClient) GetLogicalSwitchState(lswitchID string) (manag
 
 func buildLogicalSwitchResponse(id string, status string, err error) mockLogicalSwitchResponse {
 	return mockLogicalSwitchResponse{
-		ID:              fakeLogicalSwitchID + "-" + id,
-		DisplayName:     fakeLogicalSwitchDisplayName + "-" + id,
-		TransportZoneId: fakeLogicalSwitchTransportZoneID + "-" + id,
-		Status:          status,
-		Error:           err,
+		logicalSwitch: manager.LogicalSwitch{
+			Id:              fakeLogicalSwitchID + "-" + id,
+			DisplayName:     fakeLogicalSwitchDisplayName + "-" + id,
+			TransportZoneId: fakeLogicalSwitchTransportZoneID + "-" + id,
+		},
+		Status: status,
+		Error:  err,
 	}
 }
 
