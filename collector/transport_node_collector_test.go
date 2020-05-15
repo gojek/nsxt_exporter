@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/go-kit/kit/log"
@@ -9,9 +10,32 @@ import (
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
+func fakeTransportNodeID(id string) string {
+	return fmt.Sprintf("fake-transport-node-id-%s", id)
+}
+
+func fakeTransportNodeName(id string) string {
+	return fmt.Sprintf("fake-transport-node-name-%s", id)
+}
+
+func fakeTransportZoneID(id string) string {
+	return fmt.Sprintf("fake-transport-zone-id-%s", id)
+}
+
+func fakeEdgeClusterID(id string) string {
+	return fmt.Sprintf("fake-edge-cluster-id-%s", id)
+}
+
+type transportNodeStatusResponse struct {
+	ID     string
+	Status string
+	Error  error
+}
+
 type transportNodeClientMock struct {
-	edgeClustersResponse []manager.EdgeCluster
-	edgeClustersError    error
+	edgeClustersResponse         []manager.EdgeCluster
+	edgeClustersError            error
+	transportNodeStatusResponses []transportNodeStatusResponse
 }
 
 func (c *transportNodeClientMock) ListAllTransportNodes() ([]manager.TransportNode, error) {
@@ -19,7 +43,14 @@ func (c *transportNodeClientMock) ListAllTransportNodes() ([]manager.TransportNo
 }
 
 func (c *transportNodeClientMock) GetTransportNodeStatus(nodeID string) (manager.TransportNodeStatus, error) {
-	panic("implement me")
+	for _, response := range c.transportNodeStatusResponses {
+		if response.ID == nodeID {
+			return manager.TransportNodeStatus{
+				Status: response.Status,
+			}, response.Error
+		}
+	}
+	return manager.TransportNodeStatus{}, errors.New("transport node status not foud")
 }
 
 func (c *transportNodeClientMock) ListAllEdgeClusters() ([]manager.EdgeCluster, error) {
@@ -38,42 +69,42 @@ func TestTransportNodeCollector_GenerateEdgeClusterMemberships(t *testing.T) {
 			description: "Should return correct edge cluster memberships",
 			edgeClustersResponse: []manager.EdgeCluster{
 				{
-					Id: "fake-edge-cluster-id-01",
+					Id: fakeEdgeClusterID("01"),
 					Members: []manager.EdgeClusterMember{
 						{
-							TransportNodeId: "fake-transport-node-id-01",
+							TransportNodeId: fakeTransportNodeID("01"),
 							MemberIndex:     0,
 						}, {
-							TransportNodeId: "fake-transport-node-id-02",
+							TransportNodeId: fakeTransportNodeID("02"),
 							MemberIndex:     1,
 						},
 					},
 				}, {
-					Id: "fake-edge-cluster-id-02",
+					Id: fakeEdgeClusterID("02"),
 					Members: []manager.EdgeClusterMember{
 						{
-							TransportNodeId: "fake-transport-node-id-01",
+							TransportNodeId: fakeTransportNodeID("01"),
 							MemberIndex:     0,
 						},
 					},
 				}, {
-					Id:      "fake-edge-cluster-id-03",
+					Id:      fakeEdgeClusterID("03"),
 					Members: []manager.EdgeClusterMember{},
 				},
 			},
 			edgeClustersError: nil,
 			expectedMembership: []edgeClusterMembership{
 				{
-					edgeClusterID:   "fake-edge-cluster-id-01",
-					transportNodeID: "fake-transport-node-id-01",
+					edgeClusterID:   fakeEdgeClusterID("01"),
+					transportNodeID: fakeTransportNodeID("01"),
 					edgeMemberIndex: "0",
 				}, {
-					edgeClusterID:   "fake-edge-cluster-id-01",
-					transportNodeID: "fake-transport-node-id-02",
+					edgeClusterID:   fakeEdgeClusterID("01"),
+					transportNodeID: fakeTransportNodeID("02"),
 					edgeMemberIndex: "1",
 				}, {
-					edgeClusterID:   "fake-edge-cluster-id-02",
-					transportNodeID: "fake-transport-node-id-01",
+					edgeClusterID:   fakeEdgeClusterID("02"),
+					transportNodeID: fakeTransportNodeID("01"),
 					edgeMemberIndex: "0",
 				},
 			},
@@ -104,5 +135,184 @@ func TestTransportNodeCollector_GenerateEdgeClusterMemberships(t *testing.T) {
 			assert.Error(t, err, tc.description)
 		}
 		assert.ElementsMatch(t, memberships, tc.expectedMembership, tc.description)
+	}
+}
+
+func TestTransportNodeCollector_GenerateTransportNodeMetrics(t *testing.T) {
+	testcases := []struct {
+		description                 string
+		transportNodes              []manager.TransportNode
+		edgeClusterMemberships      []edgeClusterMembership
+		transportNodeStatusResponse []transportNodeStatusResponse
+		expectedMetrics             []transportNodeMetric
+	}{
+		{
+			description: "Should return correct transport node metrics",
+			transportNodes: []manager.TransportNode{
+				{
+					Id:          fakeTransportNodeID("01"),
+					DisplayName: fakeTransportNodeName("01"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("01"),
+						},
+					},
+				}, {
+					Id:          fakeTransportNodeID("02"),
+					DisplayName: fakeTransportNodeName("02"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("02"),
+						}, {
+							TransportZoneId: fakeTransportZoneID("03"),
+						},
+					},
+				},
+			},
+			edgeClusterMemberships: []edgeClusterMembership{
+				{
+					transportNodeID: fakeTransportNodeID("01"),
+					edgeMemberIndex: "0",
+					edgeClusterID:   fakeEdgeClusterID("01"),
+				},
+			},
+			transportNodeStatusResponse: []transportNodeStatusResponse{
+				{
+					ID:     fakeTransportNodeID("01"),
+					Status: "UP",
+				}, {
+					ID:     fakeTransportNodeID("02"),
+					Status: "DOWN",
+				},
+			},
+			expectedMetrics: []transportNodeMetric{
+				{
+					ID:               fakeTransportNodeID("01"),
+					Name:             fakeTransportNodeName("01"),
+					Status:           1,
+					Type:             "edge",
+					TransportZoneIDs: []string{fakeTransportZoneID("01")},
+				}, {
+					ID:               fakeTransportNodeID("02"),
+					Name:             fakeTransportNodeName("02"),
+					Status:           0,
+					Type:             "host",
+					TransportZoneIDs: []string{fakeTransportZoneID("02"), fakeTransportZoneID("03")},
+				},
+			},
+		}, {
+			description: "Should only return transport node metrics with valid status response",
+			transportNodes: []manager.TransportNode{
+				{
+					Id:          fakeTransportNodeID("01"),
+					DisplayName: fakeTransportNodeName("01"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("01"),
+						},
+					},
+				}, {
+					Id:          fakeTransportNodeID("02"),
+					DisplayName: fakeTransportNodeName("02"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("02"),
+						}, {
+							TransportZoneId: fakeTransportZoneID("03"),
+						},
+					},
+				},
+			},
+			edgeClusterMemberships: []edgeClusterMembership{
+				{
+					transportNodeID: fakeTransportNodeID("01"),
+					edgeMemberIndex: "0",
+					edgeClusterID:   fakeEdgeClusterID("01"),
+				},
+			},
+			transportNodeStatusResponse: []transportNodeStatusResponse{
+				{
+					ID:     fakeTransportNodeID("01"),
+					Status: "UP",
+				}, {
+					ID:     fakeTransportNodeID("02"),
+					Status: "UP",
+					Error:  errors.New("error getting transport node status"),
+				},
+			},
+			expectedMetrics: []transportNodeMetric{
+				{
+					ID:               fakeTransportNodeID("01"),
+					Name:             fakeTransportNodeName("01"),
+					Status:           1,
+					Type:             "edge",
+					TransportZoneIDs: []string{fakeTransportZoneID("01")},
+				},
+			},
+		}, {
+			description: "Should return transport node with empty type when given nil cluster memberships",
+			transportNodes: []manager.TransportNode{
+				{
+					Id:          fakeTransportNodeID("01"),
+					DisplayName: fakeTransportNodeName("01"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("01"),
+						},
+					},
+				}, {
+					Id:          fakeTransportNodeID("02"),
+					DisplayName: fakeTransportNodeName("02"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("02"),
+						}, {
+							TransportZoneId: fakeTransportZoneID("03"),
+						},
+					},
+				},
+			},
+			edgeClusterMemberships: nil,
+			transportNodeStatusResponse: []transportNodeStatusResponse{
+				{
+					ID:     fakeTransportNodeID("01"),
+					Status: "UP",
+				}, {
+					ID:     fakeTransportNodeID("02"),
+					Status: "DOWN",
+				},
+			},
+			expectedMetrics: []transportNodeMetric{
+				{
+					ID:               fakeTransportNodeID("01"),
+					Name:             fakeTransportNodeName("01"),
+					Status:           1,
+					Type:             "",
+					TransportZoneIDs: []string{fakeTransportZoneID("01")},
+				}, {
+					ID:               fakeTransportNodeID("02"),
+					Name:             fakeTransportNodeName("02"),
+					Status:           0,
+					Type:             "",
+					TransportZoneIDs: []string{fakeTransportZoneID("02"), fakeTransportZoneID("03")},
+				},
+			},
+		}, {
+			description:                 "Should return empty metrics when given empty transport node",
+			transportNodes:              []manager.TransportNode{},
+			edgeClusterMemberships:      []edgeClusterMembership{},
+			transportNodeStatusResponse: []transportNodeStatusResponse{},
+			expectedMetrics:             []transportNodeMetric{},
+		},
+	}
+
+	for _, tc := range testcases {
+		client := &transportNodeClientMock{
+			transportNodeStatusResponses: tc.transportNodeStatusResponse,
+		}
+		logger := log.NewNopLogger()
+		collector := newTransportNodeCollector(client, logger)
+		metrics := collector.generateTransportNodeMetrics(tc.transportNodes, tc.edgeClusterMemberships)
+		assert.ElementsMatch(t, tc.expectedMetrics, metrics, tc.description)
 	}
 }
