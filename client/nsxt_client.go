@@ -140,6 +140,61 @@ func (c *nsxtClient) ListAllLogicalSwitches() ([]manager.LogicalSwitch, error) {
 	return logicalSwitches, nil
 }
 
+func (c *nsxtClient) ReadNSXMessageBusServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	messageBusServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadNSXMessageBusServiceStatus(c.apiClient.Context)
+	return messageBusServiceStatus, err
+}
+
+func (c *nsxtClient) ReadNTPServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	ntpServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadNSXMessageBusServiceStatus(c.apiClient.Context)
+	return ntpServiceStatus, err
+}
+
+func (c *nsxtClient) ReadNsxUpgradeAgentServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	upgradeAgentServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadNsxUpgradeAgentServiceStatus(c.apiClient.Context)
+	return upgradeAgentServiceStatus, err
+}
+
+func (c *nsxtClient) ReadProtonServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	protonServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadProtonServiceStatus(c.apiClient.Context)
+	return protonServiceStatus, err
+}
+
+func (c *nsxtClient) ReadProxyServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	proxyServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadProxyServiceStatus(c.apiClient.Context)
+	return proxyServiceStatus, err
+}
+
+func (c *nsxtClient) ReadRabbitMQServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	rabbbitMQServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadRabbitMQServiceStatus(c.apiClient.Context)
+	return rabbbitMQServiceStatus, err
+}
+
+func (c *nsxtClient) ReadRepositoryServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	repositoryServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadRepositoryServiceStatus(c.apiClient.Context)
+	return repositoryServiceStatus, err
+}
+
+func (c *nsxtClient) ReadSNMPServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	snmpServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadSNMPServiceStatus(c.apiClient.Context)
+	return snmpServiceStatus, err
+}
+
+func (c *nsxtClient) ReadSSHServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	sshServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadSSHServiceStatus(c.apiClient.Context)
+	return sshServiceStatus, err
+}
+
+func (c *nsxtClient) ReadSearchServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	searchServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadSearchServiceStatus(c.apiClient.Context)
+	return searchServiceStatus, err
+}
+
+func (c *nsxtClient) ReadSyslogServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	syslogServiceStatus, _, err := c.apiClient.NsxComponentAdministrationApi.ReadSyslogServiceStatus(c.apiClient.Context)
+	return syslogServiceStatus, err
+}
+
 func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
 	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
 	return logicalSwitchesStatus, err

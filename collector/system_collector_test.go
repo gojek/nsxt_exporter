@@ -32,8 +32,8 @@ type mockClusterNodeStatusResponse struct {
 }
 
 type mockClusterServiceStatusResponse struct {
-	ApplianceStatus string
-	Error           error
+	ServiceStatus string
+	Error         error
 }
 
 type mockControlClusterStatus struct {
@@ -102,13 +102,61 @@ func (c *mockSystemClient) ReadClusterNodesAggregateStatus() (administration.Clu
 	}, nil
 }
 
-func (c *mockSystemClient) ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error) {
+func (c *mockSystemClient) buildServiceStatusResponse() (administration.NodeServiceStatusProperties, error) {
 	if c.clusterServiceStatusResponse.Error != nil {
 		return administration.NodeServiceStatusProperties{}, c.clusterServiceStatusResponse.Error
 	}
 	return administration.NodeServiceStatusProperties{
-		RuntimeState: c.clusterServiceStatusResponse.ApplianceStatus,
+		RuntimeState: c.clusterServiceStatusResponse.ServiceStatus,
 	}, nil
+}
+
+func (c *mockSystemClient) ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadNSXMessageBusServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadNTPServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadNsxUpgradeAgentServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadProtonServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadProxyServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadRabbitMQServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadRepositoryServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadSNMPServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadSSHServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadSearchServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
+}
+
+func (c *mockSystemClient) ReadSyslogServiceStatus() (administration.NodeServiceStatusProperties, error) {
+	return c.buildServiceStatusResponse()
 }
 
 func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
@@ -370,47 +418,31 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 	}
 }
 
-func TestSystemCollector_CollectClusterServiceMetrics(t *testing.T) {
+func TestSystemCollector_CollectApplianceServiceMetric(t *testing.T) {
 	testcases := []struct {
-		description     string
-		response        mockClusterServiceStatusResponse
-		expectedMetrics []systemStatusMetric
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
 	}{
 		{
-			description: "Should return up value when appliance service is running",
-			response: mockClusterServiceStatusResponse{
-				ApplianceStatus: "RUNNING",
-				Error:           nil,
-			},
-			expectedMetrics: []systemStatusMetric{
-				{
-					Status: 1.0,
-				},
-			},
+			description:    "Should return up value when appliance service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "appliance", Status: 1.0},
 		},
 		{
-			description: "Should return up value when appliance service is running with mixed cases",
-			response: mockClusterServiceStatusResponse{
-				ApplianceStatus: "Running",
-				Error:           nil,
-			},
-			expectedMetrics: []systemStatusMetric{
-				{
-					Status: 1.0,
-				},
-			},
+			description:    "Should return up value when appliance service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "appliance", Status: 1.0},
 		},
 		{
-			description: "Should return down value when appliance service is not running",
-			response: mockClusterServiceStatusResponse{
-				ApplianceStatus: "STOPPED",
-				Error:           nil,
-			},
-			expectedMetrics: []systemStatusMetric{
-				{
-					Status: 0.0,
-				},
-			},
+			description:    "Should return down value when appliance service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "appliance", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading appliance service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
 		},
 	}
 	for _, tc := range testcases {
@@ -419,7 +451,425 @@ func TestSystemCollector_CollectClusterServiceMetrics(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetrics := systemCollector.collectClusterServiceMetrics()
-		assert.ElementsMatch(t, tc.expectedMetrics, serviceMetrics, tc.description)
+		serviceMetric := systemCollector.collectApplianceServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectMessageBusServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when message bus service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "message_bus", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when message bus service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "message_bus", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when message bus service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "message_bus", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading message bus service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectMessageBusServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectNTPServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when ntp service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "ntp", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when ntp service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "ntp", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when ntp service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "ntp", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading ntp service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectNTPServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectUpgradeServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when upgrade agent service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "upgrade_agent", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when upgrade agent service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "upgrade_agent", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when upgrade agent service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "upgrade_agent", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading upgrade agent service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectUpgradeAgentServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectProtonServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when proton service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "proton", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when proton service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "proton", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when proton service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "proton", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading proton service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectProtonServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectProxyServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when proxy service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "proxy", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when proxy service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "proxy", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when proxy service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "proxy", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading proxy service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectProxyServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectRabbitMQServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when rabbitmq service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "rabbitmq", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when rabbitmq service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "rabbitmq", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when rabbitmq service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "rabbitmq", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading rabbitmq service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectRabbitMQServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectRepositoryServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when repository service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "repository", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when repository service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "repository", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when repository service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "repository", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading repository service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectRepositoryServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectSNMPServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when snmp service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "snmp", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when snmp service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "snmp", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when snmp service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "snmp", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading snmp service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectSNMPServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectSSHServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when ssh service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "ssh", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when ssh service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "ssh", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when ssh service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "ssh", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading ssh service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectSSHServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectSearchServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when search service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "search", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when search service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "search", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when search service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "search", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading search service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectSearchServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+	}
+}
+
+func TestSystemCollector_CollectSyslogServiceMetric(t *testing.T) {
+	testcases := []struct {
+		description    string
+		response       mockClusterServiceStatusResponse
+		expectedMetric systemStatusMetric
+	}{
+		{
+			description:    "Should return up value when syslog service is running",
+			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
+			expectedMetric: systemStatusMetric{Name: "syslog", Status: 1.0},
+		},
+		{
+			description:    "Should return up value when syslog service is running with mixed cases",
+			response:       mockClusterServiceStatusResponse{"Running", nil},
+			expectedMetric: systemStatusMetric{Name: "syslog", Status: 1.0},
+		},
+		{
+			description:    "Should return down value when syslog service is not running",
+			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
+			expectedMetric: systemStatusMetric{Name: "syslog", Status: 0.0},
+		},
+		{
+			description:    "Should return empty when failed reading syslog service state",
+			response:       mockClusterServiceStatusResponse{"RUNNING", errors.New("error read state")},
+			expectedMetric: systemStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockSystemClient := &mockSystemClient{
+			clusterServiceStatusResponse: tc.response,
+		}
+		logger := log.NewNopLogger()
+		systemCollector := newSystemCollector(mockSystemClient, logger)
+		serviceMetric := systemCollector.collectSyslogServiceMetric()
+		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
 	}
 }
