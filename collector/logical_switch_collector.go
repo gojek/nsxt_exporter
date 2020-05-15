@@ -9,6 +9,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	nsxt "github.com/vmware/go-vmware-nsxt"
+	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
 func init() {
@@ -55,19 +56,19 @@ func (c *logicalSwitchCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *logicalSwitchCollector) Collect(ch chan<- prometheus.Metric) {
-	lswitchStatusMetrics := c.generateLogicalSwitchStatusMetrics()
+	logicalSwitches, err := c.logicalSwitchClient.ListAllLogicalSwitches()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to list logical switches", "err", err)
+		return
+	}
+	lswitchStatusMetrics := c.generateLogicalSwitchStatusMetrics(logicalSwitches)
 	for _, m := range lswitchStatusMetrics {
 		labels := []string{m.ID, m.Name, m.TransportZoneID}
 		ch <- prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, m.Status, labels...)
 	}
 }
 
-func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSwitchStatusMetrics []logicalSwitchStatusMetric) {
-	logicalSwitches, err := c.logicalSwitchClient.ListAllLogicalSwitches()
-	if err != nil {
-		level.Error(c.logger).Log("msg", "Unable to list logical switches", "err", err)
-		return
-	}
+func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics(logicalSwitches []manager.LogicalSwitch) (logicalSwitchStatusMetrics []logicalSwitchStatusMetric) {
 	for _, logicalSwitch := range logicalSwitches {
 		logicalSwitchStatus, err := c.logicalSwitchClient.GetLogicalSwitchState(logicalSwitch.Id)
 		if err != nil {

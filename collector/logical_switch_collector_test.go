@@ -16,8 +16,7 @@ const (
 )
 
 type mockLogicalSwitchClient struct {
-	responses        []mockLogicalSwitchResponse
-	lswitchListError error
+	responses []mockLogicalSwitchResponse
 }
 
 type mockLogicalSwitchResponse struct {
@@ -27,14 +26,7 @@ type mockLogicalSwitchResponse struct {
 }
 
 func (c *mockLogicalSwitchClient) ListAllLogicalSwitches() ([]manager.LogicalSwitch, error) {
-	if c.lswitchListError != nil {
-		return nil, c.lswitchListError
-	}
-	var lswitches []manager.LogicalSwitch
-	for _, res := range c.responses {
-		lswitches = append(lswitches, res.logicalSwitch)
-	}
-	return lswitches, nil
+	panic("unused function. Only used to satisfy LogicalSwitchClient interface")
 }
 
 func (c *mockLogicalSwitchClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
@@ -63,13 +55,11 @@ func buildLogicalSwitchResponse(id string, status string, err error) mockLogical
 func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description      string
-		lswitchListError error
 		lswitchResponses []mockLogicalSwitchResponse
 		expectedMetrics  []logicalSwitchStatusMetric
 	}{
 		{
-			description:      "Should return correct status value depending on logical switch state",
-			lswitchListError: nil,
+			description: "Should return correct status value depending on logical switch state",
 			lswitchResponses: []mockLogicalSwitchResponse{
 				buildLogicalSwitchResponse("01", "SUCCESS", nil),
 				buildLogicalSwitchResponse("02", "PARTIAL_SUCCESS", nil),
@@ -132,8 +122,7 @@ func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T)
 			},
 		},
 		{
-			description:      "Should only return logical switch with valid response",
-			lswitchListError: nil,
+			description: "Should only return logical switch with valid response",
 			lswitchResponses: []mockLogicalSwitchResponse{
 				buildLogicalSwitchResponse("01", "SUCCESS", nil),
 				buildLogicalSwitchResponse("02", "SUCCESS", errors.New("error get logical switch")),
@@ -148,29 +137,22 @@ func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T)
 			},
 		},
 		{
-			description:      "Should return empty metrics when fail listing logical switch",
-			lswitchListError: errors.New("error list logical switch"),
-			lswitchResponses: []mockLogicalSwitchResponse{
-				buildLogicalSwitchResponse("01", "SUCCESS", nil),
-				buildLogicalSwitchResponse("02", "SUCCESS", nil),
-			},
-			expectedMetrics: []logicalSwitchStatusMetric{},
-		},
-		{
 			description:      "Should return empty metrics when empty response",
-			lswitchListError: nil,
 			lswitchResponses: []mockLogicalSwitchResponse{},
 			expectedMetrics:  []logicalSwitchStatusMetric{},
 		},
 	}
 	for _, tc := range testcases {
 		mockLogicalSwitchClient := &mockLogicalSwitchClient{
-			lswitchListError: tc.lswitchListError,
-			responses:        tc.lswitchResponses,
+			responses: tc.lswitchResponses,
 		}
 		logger := log.NewNopLogger()
 		lswitchCollector := newLogicalSwitchCollector(mockLogicalSwitchClient, logger)
-		lswitchMetrics := lswitchCollector.generateLogicalSwitchStatusMetrics()
+		var logicalSwitches []manager.LogicalSwitch
+		for _, res := range tc.lswitchResponses {
+			logicalSwitches = append(logicalSwitches, res.logicalSwitch)
+		}
+		lswitchMetrics := lswitchCollector.generateLogicalSwitchStatusMetrics(logicalSwitches)
 		assert.ElementsMatch(t, tc.expectedMetrics, lswitchMetrics, tc.description)
 	}
 }
