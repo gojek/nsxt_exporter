@@ -9,7 +9,6 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	nsxt "github.com/vmware/go-vmware-nsxt"
-	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
 func init() {
@@ -64,21 +63,10 @@ func (c *logicalSwitchCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics() (logicalSwitchStatusMetrics []logicalSwitchStatusMetric) {
-	var logicalSwitches []manager.LogicalSwitch
-	var cursor string
-	for {
-		localVarOptionals := make(map[string]interface{})
-		localVarOptionals["cursor"] = cursor
-		logicalSwitchsResult, err := c.logicalSwitchClient.ListLogicalSwitches(localVarOptionals)
-		if err != nil {
-			level.Error(c.logger).Log("msg", "Unable to list logical switches", "err", err)
-			return
-		}
-		logicalSwitches = append(logicalSwitches, logicalSwitchsResult.Results...)
-		cursor = logicalSwitchsResult.Cursor
-		if len(cursor) == 0 {
-			break
-		}
+	logicalSwitches, err := c.logicalSwitchClient.ListAllLogicalSwitches()
+	if err != nil {
+		level.Error(c.logger).Log("msg", "Unable to list logical switches", "err", err)
+		return
 	}
 	for _, logicalSwitch := range logicalSwitches {
 		logicalSwitchStatus, err := c.logicalSwitchClient.GetLogicalSwitchState(logicalSwitch.Id)

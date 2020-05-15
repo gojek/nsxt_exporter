@@ -28,9 +28,9 @@ type mockLogicalSwitchResponse struct {
 	Error           error
 }
 
-func (c *mockLogicalSwitchClient) ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error) {
+func (c *mockLogicalSwitchClient) ListAllLogicalSwitches() ([]manager.LogicalSwitch, error) {
 	if c.lswitchListError != nil {
-		return manager.LogicalSwitchListResult{}, c.lswitchListError
+		return nil, c.lswitchListError
 	}
 	var lswitches []manager.LogicalSwitch
 	for _, res := range c.responses {
@@ -41,9 +41,7 @@ func (c *mockLogicalSwitchClient) ListLogicalSwitches(localVarOptionals map[stri
 		}
 		lswitches = append(lswitches, lswitch)
 	}
-	return manager.LogicalSwitchListResult{
-		Results: lswitches,
-	}, nil
+	return lswitches, nil
 }
 
 func (c *mockLogicalSwitchClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
