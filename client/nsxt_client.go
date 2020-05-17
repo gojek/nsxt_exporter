@@ -144,3 +144,8 @@ func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwi
 	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
 	return logicalSwitchesStatus, err
 }
+
+func (c *nsxtClient) GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error) {
+	logicalSwitchStatistic, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchStatistics(c.apiClient.Context, lswitchID, nil)
+	return logicalSwitchStatistic, err
+}

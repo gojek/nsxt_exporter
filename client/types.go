@@ -41,4 +41,5 @@ type SystemClient interface {
 type LogicalSwitchClient interface {
 	ListAllLogicalSwitches() ([]manager.LogicalSwitch, error)
 	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
+	GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error)
 }
