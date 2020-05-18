@@ -121,12 +121,31 @@ func (c *nsxtClient) ReadApplianceManagementServiceStatus() (administration.Node
 	return applianceServiceStatus, err
 }
 
-func (c *nsxtClient) ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error) {
-	logicalSwitchesResult, _, err := c.apiClient.LogicalSwitchingApi.ListLogicalSwitches(c.apiClient.Context, localVarOptionals)
-	return logicalSwitchesResult, err
+func (c *nsxtClient) ListAllLogicalSwitches() ([]manager.LogicalSwitch, error) {
+	var logicalSwitches []manager.LogicalSwitch
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		logicalSwitchListResult, _, err := c.apiClient.LogicalSwitchingApi.ListLogicalSwitches(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		logicalSwitches = append(logicalSwitches, logicalSwitchListResult.Results...)
+		cursor = logicalSwitchListResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return logicalSwitches, nil
 }
 
 func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error) {
 	logicalSwitchesStatus, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchState(c.apiClient.Context, lswitchID)
 	return logicalSwitchesStatus, err
+}
+
+func (c *nsxtClient) GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error) {
+	logicalSwitchStatistic, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchStatistics(c.apiClient.Context, lswitchID, nil)
+	return logicalSwitchStatistic, err
 }

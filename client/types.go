@@ -39,6 +39,7 @@ type SystemClient interface {
 
 // LogicalSwitchClient represents API group Logical Switch for NSX-T client.
 type LogicalSwitchClient interface {
-	ListLogicalSwitches(localVarOptionals map[string]interface{}) (manager.LogicalSwitchListResult, error)
+	ListAllLogicalSwitches() ([]manager.LogicalSwitch, error)
 	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
+	GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error)
 }
