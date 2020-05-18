@@ -35,6 +35,17 @@ type SystemClient interface {
 	ReadClusterStatus() (administration.ClusterStatus, error)
 	ReadClusterNodesAggregateStatus() (administration.ClustersAggregateInfo, error)
 	ReadApplianceManagementServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadNSXMessageBusServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadNTPServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadNsxUpgradeAgentServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadProtonServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadProxyServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadRabbitMQServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadRepositoryServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadSNMPServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadSSHServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadSearchServiceStatus() (administration.NodeServiceStatusProperties, error)
+	ReadSyslogServiceStatus() (administration.NodeServiceStatusProperties, error)
 }
 
 // LogicalSwitchClient represents API group Logical Switch for NSX-T client.
