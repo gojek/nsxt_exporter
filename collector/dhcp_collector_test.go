@@ -12,6 +12,8 @@ import (
 const (
 	fakeDHCPServerID          = "fake-dhcp-server-id"
 	fakeDHCPServerDisplayName = "fake-dhcp-server-name"
+	fakeDHCPPoolID            = "fake-dhcp-pool-id"
+	fakeDHCPStatisticValue    = 785
 )
 
 type mockDHCPClient struct {
@@ -23,6 +25,7 @@ type mockDHCPResponse struct {
 	DisplayName string
 	Status      string
 	Error       error
+	Statistic   manager.DhcpStatistics
 }
 
 func (c *mockDHCPClient) ListAllDHCPServers() ([]manager.LogicalDhcpServer, error) {
@@ -40,12 +43,164 @@ func (c *mockDHCPClient) GetDhcpStatus(dhcpID string, localVarOptionals map[stri
 	return manager.DhcpServerStatus{}, errors.New("error")
 }
 
-func buildDHCPResponse(id string, status string, err error) mockDHCPResponse {
+func (c *mockDHCPClient) GetDHCPStatistic(dhcpID string) (manager.DhcpStatistics, error) {
+	for _, res := range c.responses {
+		if res.ID == dhcpID {
+			return res.Statistic, res.Error
+		}
+	}
+	return manager.DhcpStatistics{}, errors.New("dhcp not found")
+}
+
+func buildDHCPStatusResponse(id string, status string, err error) mockDHCPResponse {
 	return mockDHCPResponse{
 		ID:          fakeDHCPServerID + "-" + id,
 		DisplayName: fakeDHCPServerDisplayName + "-" + id,
 		Status:      status,
 		Error:       err,
+	}
+}
+
+func buildDHCPStatisticResponse(id string, err error) mockDHCPResponse {
+	return mockDHCPResponse{
+		ID:          fakeDHCPServerID + "-" + id,
+		DisplayName: fakeDHCPServerDisplayName + "-" + id,
+		Error:       err,
+		Statistic: manager.DhcpStatistics{
+			Acks:      fakeDHCPStatisticValue,
+			Declines:  fakeDHCPStatisticValue,
+			Discovers: fakeDHCPStatisticValue,
+			Errors:    fakeDHCPStatisticValue,
+			Informs:   fakeDHCPStatisticValue,
+			IpPoolStats: []manager.DhcpIpPoolUsage{
+				{
+					AllocatedNumber:     fakeDHCPStatisticValue,
+					AllocatedPercentage: fakeDHCPStatisticValue,
+					DhcpIpPoolId:        fakeDHCPPoolID + "-" + id,
+					PoolSize:            fakeDHCPStatisticValue,
+				},
+			},
+			Nacks:    fakeDHCPStatisticValue,
+			Offers:   fakeDHCPStatisticValue,
+			Releases: fakeDHCPStatisticValue,
+			Requests: fakeDHCPStatisticValue,
+		},
+	}
+}
+
+func TestDHCPCollector_GenerateDHCPStatisticMetrics(t *testing.T) {
+	testcases := []struct {
+		description     string
+		dhcpResponses   []mockDHCPResponse
+		expectedMetrics []dhcpStatisticMetric
+	}{
+		{
+			description: "Should return correct status value depending on dhcp server state",
+			dhcpResponses: []mockDHCPResponse{
+				buildDHCPStatisticResponse("01", nil),
+				buildDHCPStatisticResponse("02", nil),
+			},
+			expectedMetrics: []dhcpStatisticMetric{
+				{
+					ID:   "fake-dhcp-server-id-01",
+					Name: "fake-dhcp-server-name-01",
+					Statistic: manager.DhcpStatistics{
+						Acks:      fakeDHCPStatisticValue,
+						Declines:  fakeDHCPStatisticValue,
+						Discovers: fakeDHCPStatisticValue,
+						Errors:    fakeDHCPStatisticValue,
+						Informs:   fakeDHCPStatisticValue,
+						IpPoolStats: []manager.DhcpIpPoolUsage{
+							{
+								AllocatedNumber:     fakeDHCPStatisticValue,
+								AllocatedPercentage: fakeDHCPStatisticValue,
+								DhcpIpPoolId:        "fake-dhcp-pool-id-01",
+								PoolSize:            fakeDHCPStatisticValue,
+							},
+						},
+						Nacks:    fakeDHCPStatisticValue,
+						Offers:   fakeDHCPStatisticValue,
+						Releases: fakeDHCPStatisticValue,
+						Requests: fakeDHCPStatisticValue,
+					},
+				}, {
+					ID:   "fake-dhcp-server-id-02",
+					Name: "fake-dhcp-server-name-02",
+					Statistic: manager.DhcpStatistics{
+						Acks:      fakeDHCPStatisticValue,
+						Declines:  fakeDHCPStatisticValue,
+						Discovers: fakeDHCPStatisticValue,
+						Errors:    fakeDHCPStatisticValue,
+						Informs:   fakeDHCPStatisticValue,
+						IpPoolStats: []manager.DhcpIpPoolUsage{
+							{
+								AllocatedNumber:     fakeDHCPStatisticValue,
+								AllocatedPercentage: fakeDHCPStatisticValue,
+								DhcpIpPoolId:        "fake-dhcp-pool-id-02",
+								PoolSize:            fakeDHCPStatisticValue,
+							},
+						},
+						Nacks:    fakeDHCPStatisticValue,
+						Offers:   fakeDHCPStatisticValue,
+						Releases: fakeDHCPStatisticValue,
+						Requests: fakeDHCPStatisticValue,
+					},
+				},
+			},
+		}, {
+			description: "Should only correct status value with valid response",
+			dhcpResponses: []mockDHCPResponse{
+				buildDHCPStatisticResponse("01", nil),
+				buildDHCPStatisticResponse("02", errors.New("unable to get dhcp statistics")),
+			},
+			expectedMetrics: []dhcpStatisticMetric{
+				{
+					ID:   "fake-dhcp-server-id-01",
+					Name: "fake-dhcp-server-name-01",
+					Statistic: manager.DhcpStatistics{
+						Acks:      fakeDHCPStatisticValue,
+						Declines:  fakeDHCPStatisticValue,
+						Discovers: fakeDHCPStatisticValue,
+						Errors:    fakeDHCPStatisticValue,
+						Informs:   fakeDHCPStatisticValue,
+						IpPoolStats: []manager.DhcpIpPoolUsage{
+							{
+								AllocatedNumber:     fakeDHCPStatisticValue,
+								AllocatedPercentage: fakeDHCPStatisticValue,
+								DhcpIpPoolId:        "fake-dhcp-pool-id-01",
+								PoolSize:            fakeDHCPStatisticValue,
+							},
+						},
+						Nacks:    fakeDHCPStatisticValue,
+						Offers:   fakeDHCPStatisticValue,
+						Releases: fakeDHCPStatisticValue,
+						Requests: fakeDHCPStatisticValue,
+					},
+				},
+			},
+		}, {
+			description:     "Should return empty metrics when given empty dhcp server",
+			dhcpResponses:   []mockDHCPResponse{},
+			expectedMetrics: []dhcpStatisticMetric{},
+		},
+	}
+
+	for _, tc := range testcases {
+		mockDHCPClient := &mockDHCPClient{
+			responses: tc.dhcpResponses,
+		}
+		var dhcpServers []manager.LogicalDhcpServer
+		for _, response := range tc.dhcpResponses {
+			dhcpServer := manager.LogicalDhcpServer{
+				Id:          response.ID,
+				DisplayName: response.DisplayName,
+			}
+			dhcpServers = append(dhcpServers, dhcpServer)
+		}
+		logger := log.NewNopLogger()
+		dhcpCollector := newDHCPCollector(mockDHCPClient, logger)
+		dhcpMetrics := dhcpCollector.generateDHCPStatisticMetrics(dhcpServers)
+		assert.ElementsMatch(t, tc.expectedMetrics, dhcpMetrics, tc.description)
 	}
 }
 
@@ -58,12 +213,12 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 		{
 			description: "Should return correct status value depending on dhcp server state",
 			dhcpResponses: []mockDHCPResponse{
-				buildDHCPResponse("01", "UP", nil),
-				buildDHCPResponse("02", "DOWN", nil),
-				buildDHCPResponse("03", "ERROR", nil),
-				buildDHCPResponse("04", "NO_STANDBY", nil),
-				buildDHCPResponse("05", "Up", nil),
-				buildDHCPResponse("06", "dOwN", nil),
+				buildDHCPStatusResponse("01", "UP", nil),
+				buildDHCPStatusResponse("02", "DOWN", nil),
+				buildDHCPStatusResponse("03", "ERROR", nil),
+				buildDHCPStatusResponse("04", "NO_STANDBY", nil),
+				buildDHCPStatusResponse("05", "Up", nil),
+				buildDHCPStatusResponse("06", "dOwN", nil),
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{
@@ -101,8 +256,8 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 		{
 			description: "Should only return dhcp server with valid response",
 			dhcpResponses: []mockDHCPResponse{
-				buildDHCPResponse("01", "UP", nil),
-				buildDHCPResponse("02", "UP", errors.New("error get dhcp")),
+				buildDHCPStatusResponse("01", "UP", nil),
+				buildDHCPStatusResponse("02", "UP", errors.New("error get dhcp")),
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{

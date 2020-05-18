@@ -77,6 +77,11 @@ func (c *nsxtClient) GetDhcpStatus(dhcpID string, localVarOptionals map[string]i
 	return dhcpServerStatus, err
 }
 
+func (c *nsxtClient) GetDHCPStatistic(dhcpID string) (manager.DhcpStatistics, error) {
+	dhcpServerStatistic, _, err := c.apiClient.ServicesApi.GetDhcpStatistics(c.apiClient.Context, dhcpID)
+	return dhcpServerStatistic, err
+}
+
 func (c *nsxtClient) ListAllTransportNodes() ([]manager.TransportNode, error) {
 	var transportNodes []manager.TransportNode
 	var cursor string

@@ -21,6 +21,7 @@ type LogicalRouterPortClient interface {
 type DHCPClient interface {
 	ListAllDHCPServers() ([]manager.LogicalDhcpServer, error)
 	GetDhcpStatus(dhcpID string, localVarOptionals map[string]interface{}) (manager.DhcpServerStatus, error)
+	GetDHCPStatistic(dhcpID string) (manager.DhcpStatistics, error)
 }
 
 // TransportNodeClient represents API group Transport Node for NSX-T client.
