@@ -2,15 +2,27 @@ package collector
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/go-vmware-nsxt/administration"
+	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
 const (
 	fakeClusterNodeIPAddress = "1.2.3.4"
+	fakeCPUCores             = 1
+	fakeLoadAverage          = 1
+	fakeMemoryUse            = 1
+	fakeMemoryTotal          = 1
+	fakeMemoryCached         = 1
+	fakeSwapUse              = 1
+	fakeSwapTotal            = 1
+	fakeDiskMount            = "/fake/disk/mount"
+	fakeDiskUse              = 1
+	fakeDiskTotal            = 1
 )
 
 type mockSystemClient struct {
@@ -90,6 +102,24 @@ func (c *mockSystemClient) ReadClusterNodesAggregateStatus() (administration.Clu
 			NodeStatus: &administration.ClusterNodeStatus{
 				MgmtClusterStatus: &administration.ManagementClusterNodeStatus{
 					MgmtClusterStatus: ms,
+				},
+			},
+			NodeStatusProperties: []manager.NodeStatusProperties{
+				{
+					CpuCores:    fakeCPUCores,
+					LoadAverage: []float32{fakeLoadAverage, fakeLoadAverage, fakeLoadAverage},
+					MemUsed:     fakeMemoryUse,
+					MemTotal:    fakeMemoryTotal,
+					MemCache:    fakeMemoryCached,
+					SwapUsed:    fakeSwapUse,
+					SwapTotal:   fakeSwapTotal,
+					FileSystems: []manager.NodeFileSystemProperties{
+						{
+							Mount: fakeDiskMount,
+							Used:  fakeDiskUse,
+							Total: fakeDiskTotal,
+						},
+					},
 				},
 			},
 		}
@@ -297,7 +327,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 		expectedMetrics []systemStatusMetric
 	}{
 		{
-			description: "Should return up value for connected nodes",
+			description: "Should return system metrics for management nodes and up value for connected nodes",
 			response: mockClusterNodeStatusResponse{
 				ControlClusterStatus: []mockControlClusterStatus{
 					{
@@ -324,19 +354,45 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 					Status:    1.0,
 				},
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "management",
-					Status:    1.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					Type:         "management",
+					Status:       1.0,
+					CPUCores:     fakeCPUCores,
+					LoadAverage:  []float64{fakeLoadAverage, fakeLoadAverage, fakeLoadAverage},
+					MemoryUse:    fakeMemoryUse,
+					MemoryTotal:  fakeMemoryTotal,
+					MemoryCached: fakeMemoryCached,
+					SwapUse:      fakeSwapUse,
+					SwapTotal:    fakeSwapTotal,
+					DiskUse: map[string]float64{
+						fakeDiskMount: fakeDiskUse,
+					},
+					DiskTotal: map[string]float64{
+						fakeDiskMount: fakeDiskTotal,
+					},
 				},
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "management",
-					Status:    1.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					Type:         "management",
+					Status:       1.0,
+					CPUCores:     fakeCPUCores,
+					LoadAverage:  []float64{fakeLoadAverage, fakeLoadAverage, fakeLoadAverage},
+					MemoryUse:    fakeMemoryUse,
+					MemoryTotal:  fakeMemoryTotal,
+					MemoryCached: fakeMemoryCached,
+					SwapUse:      fakeSwapUse,
+					SwapTotal:    fakeSwapTotal,
+					DiskUse: map[string]float64{
+						fakeDiskMount: fakeDiskUse,
+					},
+					DiskTotal: map[string]float64{
+						fakeDiskMount: fakeDiskTotal,
+					},
 				},
 			},
 		},
 		{
-			description: "Should return down value for disconnected nodes",
+			description: "Should return system metrics for management nodes and down value for disconnected nodes",
 			response: mockClusterNodeStatusResponse{
 				ControlClusterStatus: []mockControlClusterStatus{
 					{
@@ -381,14 +437,40 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 					Status:    0.0,
 				},
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "management",
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					Type:         "management",
+					Status:       0.0,
+					CPUCores:     fakeCPUCores,
+					LoadAverage:  []float64{fakeLoadAverage, fakeLoadAverage, fakeLoadAverage},
+					MemoryUse:    fakeMemoryUse,
+					MemoryTotal:  fakeMemoryTotal,
+					MemoryCached: fakeMemoryCached,
+					SwapUse:      fakeSwapUse,
+					SwapTotal:    fakeSwapTotal,
+					DiskUse: map[string]float64{
+						fakeDiskMount: fakeDiskUse,
+					},
+					DiskTotal: map[string]float64{
+						fakeDiskMount: fakeDiskTotal,
+					},
 				},
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "management",
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					Type:         "management",
+					Status:       0.0,
+					CPUCores:     fakeCPUCores,
+					LoadAverage:  []float64{fakeLoadAverage, fakeLoadAverage, fakeLoadAverage},
+					MemoryUse:    fakeMemoryUse,
+					MemoryTotal:  fakeMemoryTotal,
+					MemoryCached: fakeMemoryCached,
+					SwapUse:      fakeSwapUse,
+					SwapTotal:    fakeSwapTotal,
+					DiskUse: map[string]float64{
+						fakeDiskMount: fakeDiskUse,
+					},
+					DiskTotal: map[string]float64{
+						fakeDiskMount: fakeDiskTotal,
+					},
 				},
 			},
 		},
@@ -453,7 +535,7 @@ func TestSystemCollector_CollectApplianceServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectApplianceServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -494,7 +576,7 @@ func TestSystemCollector_CollectMessageBusServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectMessageBusServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -535,7 +617,7 @@ func TestSystemCollector_CollectNTPServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectNTPServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -576,7 +658,7 @@ func TestSystemCollector_CollectUpgradeServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectUpgradeAgentServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -617,7 +699,7 @@ func TestSystemCollector_CollectProtonServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectProtonServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -658,7 +740,7 @@ func TestSystemCollector_CollectProxyServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectProxyServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -699,7 +781,7 @@ func TestSystemCollector_CollectRabbitMQServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectRabbitMQServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -740,7 +822,7 @@ func TestSystemCollector_CollectRepositoryServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectRepositoryServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -781,7 +863,7 @@ func TestSystemCollector_CollectSNMPServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectSNMPServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -822,7 +904,7 @@ func TestSystemCollector_CollectSSHServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectSSHServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -863,7 +945,7 @@ func TestSystemCollector_CollectSearchServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectSearchServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
@@ -904,7 +986,7 @@ func TestSystemCollector_CollectSyslogServiceMetric(t *testing.T) {
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		serviceMetric, err := systemCollector.collectSyslogServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
-		if tc.expectedMetric == (systemStatusMetric{}) {
+		if reflect.DeepEqual(tc.expectedMetric, (systemStatusMetric{})) {
 			assert.Error(t, err)
 		}
 	}
