@@ -451,8 +451,11 @@ func TestSystemCollector_CollectApplianceServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectApplianceServiceMetric()
+		serviceMetric, err := systemCollector.collectApplianceServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -489,8 +492,11 @@ func TestSystemCollector_CollectMessageBusServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectMessageBusServiceMetric()
+		serviceMetric, err := systemCollector.collectMessageBusServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -527,8 +533,11 @@ func TestSystemCollector_CollectNTPServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectNTPServiceMetric()
+		serviceMetric, err := systemCollector.collectNTPServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -565,8 +574,11 @@ func TestSystemCollector_CollectUpgradeServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectUpgradeAgentServiceMetric()
+		serviceMetric, err := systemCollector.collectUpgradeAgentServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -603,8 +615,11 @@ func TestSystemCollector_CollectProtonServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectProtonServiceMetric()
+		serviceMetric, err := systemCollector.collectProtonServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -641,8 +656,11 @@ func TestSystemCollector_CollectProxyServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectProxyServiceMetric()
+		serviceMetric, err := systemCollector.collectProxyServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -679,8 +697,11 @@ func TestSystemCollector_CollectRabbitMQServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectRabbitMQServiceMetric()
+		serviceMetric, err := systemCollector.collectRabbitMQServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -717,8 +738,11 @@ func TestSystemCollector_CollectRepositoryServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectRepositoryServiceMetric()
+		serviceMetric, err := systemCollector.collectRepositoryServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -755,8 +779,11 @@ func TestSystemCollector_CollectSNMPServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectSNMPServiceMetric()
+		serviceMetric, err := systemCollector.collectSNMPServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -793,8 +820,11 @@ func TestSystemCollector_CollectSSHServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectSSHServiceMetric()
+		serviceMetric, err := systemCollector.collectSSHServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -831,8 +861,11 @@ func TestSystemCollector_CollectSearchServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectSearchServiceMetric()
+		serviceMetric, err := systemCollector.collectSearchServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
 
@@ -869,7 +902,10 @@ func TestSystemCollector_CollectSyslogServiceMetric(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		serviceMetric := systemCollector.collectSyslogServiceMetric()
+		serviceMetric, err := systemCollector.collectSyslogServiceMetric()
 		assert.Equal(t, tc.expectedMetric, serviceMetric, tc.description)
+		if tc.expectedMetric == (systemStatusMetric{}) {
+			assert.Error(t, err)
+		}
 	}
 }
