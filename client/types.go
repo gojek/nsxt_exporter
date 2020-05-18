@@ -19,7 +19,7 @@ type LogicalRouterPortClient interface {
 
 // DHCPClient represents API group DHCP for NSX-T client.
 type DHCPClient interface {
-	ListDhcpServers(localVarOptionals map[string]interface{}) (manager.LogicalDhcpServerListResult, error)
+	ListAllDHCPServers() ([]manager.LogicalDhcpServer, error)
 	GetDhcpStatus(dhcpID string, localVarOptionals map[string]interface{}) (manager.DhcpServerStatus, error)
 }
 

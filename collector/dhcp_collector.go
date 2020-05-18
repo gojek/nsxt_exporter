@@ -54,30 +54,19 @@ func (dc *dhcpCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (dc *dhcpCollector) Collect(ch chan<- prometheus.Metric) {
-	dhcpStatusMetrics := dc.generateDHCPStatusMetrics()
+	dhcpServers, err := dc.dhcpClient.ListAllDHCPServers()
+	if err != nil {
+		level.Error(dc.logger).Log("msg", "Unable to list dhcp servers", "err", err)
+		return
+	}
+	dhcpStatusMetrics := dc.generateDHCPStatusMetrics(dhcpServers)
 	for _, m := range dhcpStatusMetrics {
 		ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, m.Status, m.ID, m.Name)
 	}
 }
 
-func (dc *dhcpCollector) generateDHCPStatusMetrics() (dhcpStatusMetrics []dhcpStatusMetric) {
-	var dhcps []manager.LogicalDhcpServer
-	var cursor string
-	for {
-		localVarOptionals := make(map[string]interface{})
-		localVarOptionals["cursor"] = cursor
-		dhcpListResponse, err := dc.dhcpClient.ListDhcpServers(localVarOptionals)
-		if err != nil {
-			level.Error(dc.logger).Log("msg", "Unable to list dhcp servers", "err", err)
-			return
-		}
-		dhcps = append(dhcps, dhcpListResponse.Results...)
-		cursor = dhcpListResponse.Cursor
-		if len(cursor) == 0 {
-			break
-		}
-	}
-	for _, dhcp := range dhcps {
+func (dc *dhcpCollector) generateDHCPStatusMetrics(dhcpServers []manager.LogicalDhcpServer) (dhcpStatusMetrics []dhcpStatusMetric) {
+	for _, dhcp := range dhcpServers {
 		dhcpStatus, err := dc.dhcpClient.GetDhcpStatus(dhcp.Id, nil)
 		if err != nil {
 			level.Error(dc.logger).Log("msg", "Unable to get dhcp status", "id", dhcp.Id, "err", err)

@@ -15,8 +15,7 @@ const (
 )
 
 type mockDHCPClient struct {
-	responses     []mockDHCPResponse
-	dhcpListError error
+	responses []mockDHCPResponse
 }
 
 type mockDHCPResponse struct {
@@ -26,21 +25,8 @@ type mockDHCPResponse struct {
 	Error       error
 }
 
-func (c *mockDHCPClient) ListDhcpServers(localVarOptionals map[string]interface{}) (manager.LogicalDhcpServerListResult, error) {
-	if c.dhcpListError != nil {
-		return manager.LogicalDhcpServerListResult{}, c.dhcpListError
-	}
-	var dhcpServers []manager.LogicalDhcpServer
-	for _, response := range c.responses {
-		dhcpServer := manager.LogicalDhcpServer{
-			Id:          response.ID,
-			DisplayName: response.DisplayName,
-		}
-		dhcpServers = append(dhcpServers, dhcpServer)
-	}
-	return manager.LogicalDhcpServerListResult{
-		Results: dhcpServers,
-	}, nil
+func (c *mockDHCPClient) ListAllDHCPServers() ([]manager.LogicalDhcpServer, error) {
+	panic("unused function. Only used to satisfy DHCPClient interface")
 }
 
 func (c *mockDHCPClient) GetDhcpStatus(dhcpID string, localVarOptionals map[string]interface{}) (manager.DhcpServerStatus, error) {
@@ -66,13 +52,11 @@ func buildDHCPResponse(id string, status string, err error) mockDHCPResponse {
 func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description     string
-		dhcpListError   error
 		dhcpResponses   []mockDHCPResponse
 		expectedMetrics []dhcpStatusMetric
 	}{
 		{
-			description:   "Should return correct status value depending on dhcp server state",
-			dhcpListError: nil,
+			description: "Should return correct status value depending on dhcp server state",
 			dhcpResponses: []mockDHCPResponse{
 				buildDHCPResponse("01", "UP", nil),
 				buildDHCPResponse("02", "DOWN", nil),
@@ -115,8 +99,7 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 		},
 		{
-			description:   "Should only return dhcp server with valid response",
-			dhcpListError: nil,
+			description: "Should only return dhcp server with valid response",
 			dhcpResponses: []mockDHCPResponse{
 				buildDHCPResponse("01", "UP", nil),
 				buildDHCPResponse("02", "UP", errors.New("error get dhcp")),
@@ -130,28 +113,25 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 		},
 		{
-			description:   "Should return empty metrics when fail listing dhcp server",
-			dhcpListError: errors.New("error list dhcp"),
-			dhcpResponses: []mockDHCPResponse{
-				buildDHCPResponse("01", "UP", nil),
-				buildDHCPResponse("02", "UP", nil),
-			},
-			expectedMetrics: []dhcpStatusMetric{},
-		},
-		{
-			dhcpListError:   nil,
 			dhcpResponses:   []mockDHCPResponse{},
 			expectedMetrics: []dhcpStatusMetric{},
 		},
 	}
 	for _, tc := range testcases {
 		mockDHCPClient := &mockDHCPClient{
-			dhcpListError: tc.dhcpListError,
-			responses:     tc.dhcpResponses,
+			responses: tc.dhcpResponses,
+		}
+		var dhcpServers []manager.LogicalDhcpServer
+		for _, response := range tc.dhcpResponses {
+			dhcpServer := manager.LogicalDhcpServer{
+				Id:          response.ID,
+				DisplayName: response.DisplayName,
+			}
+			dhcpServers = append(dhcpServers, dhcpServer)
 		}
 		logger := log.NewNopLogger()
 		dhcpCollector := newDHCPCollector(mockDHCPClient, logger)
-		dhcpMetrics := dhcpCollector.generateDHCPStatusMetrics()
-		assert.ElementsMatch(t, tc.expectedMetrics, dhcpMetrics)
+		dhcpMetrics := dhcpCollector.generateDHCPStatusMetrics(dhcpServers)
+		assert.ElementsMatch(t, tc.expectedMetrics, dhcpMetrics, tc.description)
 	}
 }
