@@ -80,7 +80,7 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 		expectedMetrics       []loadBalancerStatusMetric
 	}{
 		{
-			description: "",
+			description: "Should return correct status value depending on load balancer state",
 			loadBalancerResponses: []mockLoadBalancerResponse{
 				buildLoadBalancerStatusResponse("01", "UP", "UP", "UP", nil),
 				buildLoadBalancerStatusResponse("02", "DOWN", "PARTIALLY_UP", "DOWN", nil),
@@ -212,6 +212,36 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			description: "Should only return metric with valid response",
+			loadBalancerResponses: []mockLoadBalancerResponse{
+				buildLoadBalancerStatusResponse("01", "UP", "UP", "UP", nil),
+				buildLoadBalancerStatusResponse("02", "UP", "UP", "UP", errors.New("unable to get load balancer status")),
+			},
+			expectedMetrics: []loadBalancerStatusMetric{
+				{
+					ID:     "fake-load-balancer-id-01",
+					Name:   "fake-load-balancer-name-01",
+					Status: 1.0,
+					PoolsStatus: []loadBalancerPoolStatusMetric{
+						{
+							ID:     "fake-load-balancer-pool-id-01",
+							Status: 1.0,
+							MembersStatus: []loadBalancerPoolMemberStatusMetric{
+								{
+									IPAddress: fakeLoadbalancerPoolMemberIP,
+									Port:      fakeLoadbalancerPoolMemberPort,
+									Status:    1.0,
+								},
+							},
+						},
+					},
+				},
+			},
+		}, {
+			description:           "Should return empty metrics when given empty load balancer",
+			loadBalancerResponses: []mockLoadBalancerResponse{},
+			expectedMetrics:       []loadBalancerStatusMetric{},
 		},
 	}
 	for _, tc := range testcases {
