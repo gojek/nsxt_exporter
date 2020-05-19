@@ -12,16 +12,20 @@ import (
 
 const (
 	fakeLogicalRouterID = "fake-logical-router-id"
+	fakeNatRuleID       = "fake-nat-rule-id"
+	fakeNatRuleName     = "fake-nat-rule-name"
 	fakeNatTotalPackets = 1
 	fakeNatTotalBytes   = 1
 )
 
 type mockLogicalRouterClient struct {
-	responses []mockLogicalRouterResponse
+	responses        []mockLogicalRouterResponse
+	natRuleListError error
 }
 
 type mockLogicalRouterResponse struct {
 	LogicalRouter manager.LogicalRouter
+	NatRules      []manager.NatRule
 	Error         error
 
 	NatTotalPackets int64
@@ -32,25 +36,60 @@ func (c *mockLogicalRouterClient) ListAllLogicalRouters() ([]manager.LogicalRout
 	panic("unused function. Only used to satisfy LogicalRouterClient interface")
 }
 
-func (c *mockLogicalRouterClient) GetNatStatisticsPerLogicalRouter(lrouterID string) (manager.NatStatisticsPerLogicalRouter, error) {
+func (c *mockLogicalRouterClient) ListAllNatRules(lrouterID string) ([]manager.NatRule, error) {
+	if c.natRuleListError != nil {
+		return nil, c.natRuleListError
+	}
+	var natRules []manager.NatRule
+	for _, response := range c.responses {
+		if response.LogicalRouter.Id != lrouterID {
+			continue
+		}
+		for _, rule := range response.NatRules {
+			natRule := manager.NatRule{
+				Id:              rule.Id,
+				DisplayName:     rule.DisplayName,
+				LogicalRouterId: lrouterID,
+			}
+			natRules = append(natRules, natRule)
+		}
+	}
+	return natRules, nil
+}
+
+func (c *mockLogicalRouterClient) GetNatStatisticsPerRule(lrouterID, ruleID string) (manager.NatStatisticsPerRule, error) {
 	for _, res := range c.responses {
-		if res.LogicalRouter.Id == lrouterID {
-			return manager.NatStatisticsPerLogicalRouter{
-				StatisticsAcrossAllNodes: &manager.NatCounters{
-					TotalPackets: res.NatTotalPackets,
-					TotalBytes:   res.NatTotalBytes,
-				},
+		if res.LogicalRouter.Id != lrouterID {
+			continue
+		}
+		for _, rule := range res.NatRules {
+			if rule.Id != ruleID {
+				continue
+			}
+			return manager.NatStatisticsPerRule{
+				Id:              ruleID,
+				LogicalRouterId: lrouterID,
+				TotalPackets:    fakeNatTotalPackets,
+				TotalBytes:      fakeNatTotalBytes,
 			}, res.Error
 		}
 	}
-	return manager.NatStatisticsPerLogicalRouter{}, errors.New("error logical router not found")
+	return manager.NatStatisticsPerRule{}, errors.New("error nat rule not found")
 }
 
-func buildLogicalRouterResponse(id string, err error) mockLogicalRouterResponse {
+func buildLogicalRouterResponse(lrouterID string, ruleIDs []string, err error) mockLogicalRouterResponse {
+	var natRules []manager.NatRule
+	for _, ruleID := range ruleIDs {
+		natRules = append(natRules, manager.NatRule{
+			Id:          fmt.Sprintf("%s-%s", fakeNatRuleID, ruleID),
+			DisplayName: fmt.Sprintf("%s-%s", fakeNatRuleName, ruleID),
+		})
+	}
 	return mockLogicalRouterResponse{
 		LogicalRouter: manager.LogicalRouter{
-			Id: fmt.Sprintf("%s-%s", fakeLogicalRouterID, id),
+			Id: fmt.Sprintf("%s-%s", fakeLogicalRouterID, lrouterID),
 		},
+		NatRules:        natRules,
 		Error:           err,
 		NatTotalPackets: fakeNatTotalPackets,
 		NatTotalBytes:   fakeNatTotalBytes,
@@ -68,23 +107,35 @@ func buildLogicalRouters(logicalRouterResponses []mockLogicalRouterResponse) []m
 func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *testing.T) {
 	testcases := []struct {
 		description            string
+		natRuleListError       error
 		logicalRouterResponses []mockLogicalRouterResponse
-		expectedMetrics        []logicalRouterNatStatisticMetric
+		expectedMetrics        []natRuleStatisticMetric
 	}{
 		{
 			description: "Should return correct statistics metrics",
 			logicalRouterResponses: []mockLogicalRouterResponse{
-				buildLogicalRouterResponse("01", nil),
-				buildLogicalRouterResponse("02", nil),
+				buildLogicalRouterResponse("1", []string{"1", "2"}, nil),
+				buildLogicalRouterResponse("2", []string{"3"}, nil),
 			},
-			expectedMetrics: []logicalRouterNatStatisticMetric{
+			expectedMetrics: []natRuleStatisticMetric{
 				{
-					LogicalRouterID: fmt.Sprintf("%s-01", fakeLogicalRouterID),
+					ID:              fmt.Sprintf("%s-1", fakeNatRuleID),
+					Name:            fmt.Sprintf("%s-1", fakeNatRuleName),
+					LogicalRouterID: fmt.Sprintf("%s-1", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
 				},
 				{
-					LogicalRouterID: fmt.Sprintf("%s-02", fakeLogicalRouterID),
+					ID:              fmt.Sprintf("%s-2", fakeNatRuleID),
+					Name:            fmt.Sprintf("%s-2", fakeNatRuleName),
+					LogicalRouterID: fmt.Sprintf("%s-1", fakeLogicalRouterID),
+					NatTotalPackets: fakeNatTotalPackets,
+					NatTotalBytes:   fakeNatTotalBytes,
+				},
+				{
+					ID:              fmt.Sprintf("%s-3", fakeNatRuleID),
+					Name:            fmt.Sprintf("%s-3", fakeNatRuleName),
+					LogicalRouterID: fmt.Sprintf("%s-2", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
 				},
@@ -93,12 +144,14 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		{
 			description: "Should only return statistics with valid response",
 			logicalRouterResponses: []mockLogicalRouterResponse{
-				buildLogicalRouterResponse("01", nil),
-				buildLogicalRouterResponse("02", errors.New("error get logical router nat statistic")),
+				buildLogicalRouterResponse("1", []string{"1", "2"}, errors.New("error get nat rule statistic")),
+				buildLogicalRouterResponse("2", []string{"3"}, nil),
 			},
-			expectedMetrics: []logicalRouterNatStatisticMetric{
+			expectedMetrics: []natRuleStatisticMetric{
 				{
-					LogicalRouterID: fmt.Sprintf("%s-01", fakeLogicalRouterID),
+					ID:              fmt.Sprintf("%s-3", fakeNatRuleID),
+					Name:            fmt.Sprintf("%s-3", fakeNatRuleName),
+					LogicalRouterID: fmt.Sprintf("%s-2", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
 				},
@@ -107,7 +160,13 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		{
 			description:            "Should return empty metrics when given empty logical router",
 			logicalRouterResponses: []mockLogicalRouterResponse{},
-			expectedMetrics:        []logicalRouterNatStatisticMetric{},
+			expectedMetrics:        []natRuleStatisticMetric{},
+		},
+		{
+			description:            "Should return empty metrics when error listing nat rules",
+			natRuleListError:       errors.New("error list nat rules"),
+			logicalRouterResponses: []mockLogicalRouterResponse{},
+			expectedMetrics:        []natRuleStatisticMetric{},
 		},
 	}
 	for _, tc := range testcases {
@@ -117,7 +176,8 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		logger := log.NewNopLogger()
 		lrouterCollector := newLogicalRouterCollector(mockLogicalRouterCLient, logger)
 		logicalRouters := buildLogicalRouters(tc.logicalRouterResponses)
-		metrics := lrouterCollector.generateLogicalRouterNatStatisticMetrics(logicalRouters)
+		metrics := lrouterCollector.generateNatRuleStatisticMetrics(logicalRouters)
+		fmt.Println(metrics)
 		assert.ElementsMatch(t, tc.expectedMetrics, metrics, tc.description)
 	}
 }

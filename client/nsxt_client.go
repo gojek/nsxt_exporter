@@ -39,9 +39,30 @@ func (c *nsxtClient) ListAllLogicalRouters() ([]manager.LogicalRouter, error) {
 	return logicalRouters, nil
 }
 
-func (c *nsxtClient) GetNatStatisticsPerLogicalRouter(lrouterID string) (manager.NatStatisticsPerLogicalRouter, error) {
-	lrouterResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.GetNatStatisticsPerLogicalRouter(c.apiClient.Context, lrouterID, nil)
-	return lrouterResult, err
+func (c *nsxtClient) ListAllNatRules(lrouterID string) ([]manager.NatRule, error) {
+	var natRules []manager.NatRule
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		natRulesResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.ListNatRules(c.apiClient.Context, lrouterID, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		natRules = append(natRules, natRulesResult.Results...)
+		cursor = natRulesResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return natRules, nil
+}
+
+func (c *nsxtClient) GetNatStatisticsPerRule(lrouterID, ruleID string) (manager.NatStatisticsPerRule, error) {
+	localVarOptionals := make(map[string]interface{})
+	localVarOptionals["source"] = "realtime"
+	natStatsResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.GetNatStatisticsPerRule(c.apiClient.Context, lrouterID, ruleID, localVarOptionals)
+	return natStatsResult, err
 }
 
 func (c *nsxtClient) ListLogicalPorts(localVarOptionals map[string]interface{}) (manager.LogicalPortListResult, error) {
