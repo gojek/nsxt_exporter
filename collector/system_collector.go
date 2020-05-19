@@ -19,9 +19,18 @@ type systemCollector struct {
 	systemClient client.SystemClient
 	logger       log.Logger
 
-	clusterStatus       *prometheus.Desc
-	clusterNodeStatus   *prometheus.Desc
-	systemServiceStatus *prometheus.Desc
+	clusterStatus            *prometheus.Desc
+	clusterNodeStatus        *prometheus.Desc
+	clusterNodeCPUCoresUse   *prometheus.Desc
+	clusterNodeCPUCoresTotal *prometheus.Desc
+	clusterNodeMemoryUse     *prometheus.Desc
+	clusterNodeMemoryTotal   *prometheus.Desc
+	clusterNodeMemoryCached  *prometheus.Desc
+	clusterNodeSwapUse       *prometheus.Desc
+	clusterNodeSwapTotal     *prometheus.Desc
+	clusterNodeDiskUse       *prometheus.Desc
+	clusterNodeDiskTotal     *prometheus.Desc
+	systemServiceStatus      *prometheus.Desc
 }
 
 type systemStatusMetric struct {
@@ -29,6 +38,16 @@ type systemStatusMetric struct {
 	IPAddress string
 	Type      string
 	Status    float64
+
+	CPUCores     float64
+	LoadAverage  []float64
+	MemoryCached float64
+	MemoryUse    float64
+	MemoryTotal  float64
+	SwapUse      float64
+	SwapTotal    float64
+	DiskUse      map[string]float64
+	DiskTotal    map[string]float64
 }
 
 func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -49,6 +68,60 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 		[]string{"ip_address", "type"},
 		nil,
 	)
+	clusterNodeCPUCoresUse := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "cpu_use_cores"),
+		"NSX-T system cluster node average load",
+		[]string{"ip_address", "type", "minutes"},
+		nil,
+	)
+	clusterNodeCPUCoresTotal := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "cpu_total_cores"),
+		"NSX-T system cluster nodes cpu cores total",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeMemoryUse := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "memory_use_kilobytes"),
+		"NSX-T system cluster node memory use",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeMemoryTotal := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "memory_total_kilobytes"),
+		"NSX-T system cluster node memory total",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeMemoryCached := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "memory_cached_kilobytes"),
+		"NSX-T system cluster node cached memory",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeSwapUse := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "swap_use_kilobytes"),
+		"NSX-T system cluster node swap use",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeSwapTotal := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "swap_total_kilobytes"),
+		"NSX-T system cluster node swap total",
+		[]string{"ip_address", "type"},
+		nil,
+	)
+	clusterNodeDiskUse := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "disk_use_kilobytes"),
+		"NSX-T system cluster node disk use",
+		[]string{"ip_address", "type", "filesystem"},
+		nil,
+	)
+	clusterNodeDiskTotal := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "cluster_node", "disk_total_kilobytes"),
+		"NSX-T system cluster node disk total",
+		[]string{"ip_address", "type", "filesystem"},
+		nil,
+	)
 	systemServiceStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "system_service", "status"),
 		"Status of NSX-T system service UP/DOWN.",
@@ -59,9 +132,18 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 		systemClient: systemClient,
 		logger:       logger,
 
-		clusterStatus:       clusterStatus,
-		clusterNodeStatus:   clusterNodeStatus,
-		systemServiceStatus: systemServiceStatus,
+		clusterStatus:            clusterStatus,
+		clusterNodeStatus:        clusterNodeStatus,
+		clusterNodeCPUCoresUse:   clusterNodeCPUCoresUse,
+		clusterNodeCPUCoresTotal: clusterNodeCPUCoresTotal,
+		clusterNodeMemoryUse:     clusterNodeMemoryUse,
+		clusterNodeMemoryTotal:   clusterNodeMemoryTotal,
+		clusterNodeMemoryCached:  clusterNodeMemoryCached,
+		clusterNodeSwapUse:       clusterNodeSwapUse,
+		clusterNodeSwapTotal:     clusterNodeSwapTotal,
+		clusterNodeDiskUse:       clusterNodeDiskUse,
+		clusterNodeDiskTotal:     clusterNodeDiskTotal,
+		systemServiceStatus:      systemServiceStatus,
 	}
 }
 
@@ -82,13 +164,30 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 	nodeMetrics := sc.collectClusterNodeMetrics()
 	for _, nm := range nodeMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
+		if nm.Type == "management" {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[0], nm.IPAddress, nm.Type, "1")  // 1 minute
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[1], nm.IPAddress, nm.Type, "5")  // 5 minutes
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[2], nm.IPAddress, nm.Type, "15") // 15 minutes
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nm.Type)
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nm.Type)
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nm.Type)
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryCached, prometheus.GaugeValue, nm.MemoryCached, nm.IPAddress, nm.Type)
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapUse, prometheus.GaugeValue, nm.SwapUse, nm.IPAddress, nm.Type)
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapTotal, prometheus.GaugeValue, nm.SwapTotal, nm.IPAddress, nm.Type)
+
+			for filesystem, diskUse := range nm.DiskUse {
+				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskUse, prometheus.GaugeValue, diskUse, nm.IPAddress, nm.Type, filesystem)
+			}
+			for filesystem, diskTotal := range nm.DiskTotal {
+				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nm.Type, filesystem)
+			}
+		}
 	}
 
 	serviceMetrics := sc.collectServiceStatusMetrics()
 	for _, svm := range serviceMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.systemServiceStatus, prometheus.GaugeValue, svm.Status, svm.Name)
 	}
-
 }
 
 func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
@@ -109,13 +208,23 @@ func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []
 }
 
 func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []systemStatusMetric) {
-	clusterNodesStatus, err := sc.systemClient.ReadClusterNodesAggregateStatus()
+	clusterNodes, err := sc.systemClient.ReadClusterNodesAggregateStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster nodes status")
 		return
 	}
 
-	for _, c := range clusterNodesStatus.ControllerCluster {
+	controllerStatusMetrics := sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
+	systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetrics...)
+
+	managementNodeMetrics := sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
+	systemStatusMetrics = append(systemStatusMetrics, managementNodeMetrics...)
+
+	return
+}
+
+func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+	for _, c := range controllerNodes {
 		controllerStatusMetric := systemStatusMetric{
 			IPAddress: c.RoleConfig.ControlPlaneListenAddr.IpAddress,
 			Type:      "controller",
@@ -127,17 +236,45 @@ func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []sy
 		}
 		systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetric)
 	}
+	return
+}
 
-	for _, m := range clusterNodesStatus.ManagementCluster {
-		managementStatusMetric := systemStatusMetric{
+func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+	for _, m := range managementNodes {
+		managementNodeMetric := systemStatusMetric{
 			IPAddress: m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
 			Type:      "management",
 			Status:    0.0,
 		}
 		if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == "CONNECTED" {
-			managementStatusMetric.Status = 1.0
+			managementNodeMetric.Status = 1.0
 		}
-		systemStatusMetrics = append(systemStatusMetrics, managementStatusMetric)
+		if len(m.NodeStatusProperties) > 0 {
+			const latestDataIndex = 0
+			prop := m.NodeStatusProperties[latestDataIndex]
+
+			managementNodeMetric.CPUCores = float64(prop.CpuCores)
+
+			managementNodeMetric.LoadAverage = make([]float64, 3)
+			managementNodeMetric.LoadAverage[0] = float64(prop.LoadAverage[0])
+			managementNodeMetric.LoadAverage[1] = float64(prop.LoadAverage[1])
+			managementNodeMetric.LoadAverage[2] = float64(prop.LoadAverage[2])
+
+			managementNodeMetric.MemoryUse = float64(prop.MemUsed)
+			managementNodeMetric.MemoryTotal = float64(prop.MemTotal)
+			managementNodeMetric.MemoryCached = float64(prop.MemCache)
+
+			managementNodeMetric.SwapUse = float64(prop.SwapUsed)
+			managementNodeMetric.SwapTotal = float64(prop.SwapTotal)
+
+			managementNodeMetric.DiskUse = make(map[string]float64)
+			managementNodeMetric.DiskTotal = make(map[string]float64)
+			for _, disk := range prop.FileSystems {
+				managementNodeMetric.DiskUse[disk.Mount] = float64(disk.Used)
+				managementNodeMetric.DiskTotal[disk.Mount] = float64(disk.Total)
+			}
+		}
+		systemStatusMetrics = append(systemStatusMetrics, managementNodeMetric)
 	}
 	return
 }
