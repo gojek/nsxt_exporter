@@ -20,6 +20,30 @@ func NewNSXTClient(apiClient *nsxt.APIClient, logger log.Logger) *nsxtClient {
 	}
 }
 
+func (c *nsxtClient) ListAllLogicalRouters() ([]manager.LogicalRouter, error) {
+	var logicalRouters []manager.LogicalRouter
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		logicalRoutersResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.ListLogicalRouters(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		logicalRouters = append(logicalRouters, logicalRoutersResult.Results...)
+		cursor = logicalRoutersResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return logicalRouters, nil
+}
+
+func (c *nsxtClient) GetNatStatisticsPerLogicalRouter(lrouterID string) (manager.NatStatisticsPerLogicalRouter, error) {
+	lrouterResult, _, err := c.apiClient.LogicalRoutingAndServicesApi.GetNatStatisticsPerLogicalRouter(c.apiClient.Context, lrouterID, nil)
+	return lrouterResult, err
+}
+
 func (c *nsxtClient) ListLogicalPorts(localVarOptionals map[string]interface{}) (manager.LogicalPortListResult, error) {
 	lportsResult, _, err := c.apiClient.LogicalSwitchingApi.ListLogicalPorts(c.apiClient.Context, localVarOptionals)
 	return lportsResult, err
