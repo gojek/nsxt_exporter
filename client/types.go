@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/vmware/go-vmware-nsxt/administration"
+	"github.com/vmware/go-vmware-nsxt/loadbalancer"
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
@@ -54,4 +55,10 @@ type LogicalSwitchClient interface {
 	ListAllLogicalSwitches() ([]manager.LogicalSwitch, error)
 	GetLogicalSwitchState(lswitchID string) (manager.LogicalSwitchState, error)
 	GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error)
+}
+
+// LoadBalancerClient represents API group Load Balancer for NSXT-T Client
+type LoadBalancerClient interface {
+	ListAllLoadBalancers() ([]loadbalancer.LbService, error)
+	GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.LbServiceStatus, error)
 }
