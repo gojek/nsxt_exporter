@@ -53,14 +53,33 @@ func (c *nsxtClient) GetLogicalRouterPortStatisticsSummary(lrportID string) (man
 	return lrportsStatus, err
 }
 
-func (c *nsxtClient) ListDhcpServers(localVarOptionals map[string]interface{}) (manager.LogicalDhcpServerListResult, error) {
-	dhcpServersResult, _, err := c.apiClient.ServicesApi.ListDhcpServers(c.apiClient.Context, localVarOptionals)
-	return dhcpServersResult, err
+func (c *nsxtClient) ListAllDHCPServers() ([]manager.LogicalDhcpServer, error) {
+	var dhcps []manager.LogicalDhcpServer
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		dhcpListResponse, _, err := c.apiClient.ServicesApi.ListDhcpServers(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		dhcps = append(dhcps, dhcpListResponse.Results...)
+		cursor = dhcpListResponse.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return dhcps, nil
 }
 
 func (c *nsxtClient) GetDhcpStatus(dhcpID string, localVarOptionals map[string]interface{}) (manager.DhcpServerStatus, error) {
 	dhcpServerStatus, _, err := c.apiClient.ServicesApi.GetDhcpStatus(c.apiClient.Context, dhcpID)
 	return dhcpServerStatus, err
+}
+
+func (c *nsxtClient) GetDHCPStatistic(dhcpID string) (manager.DhcpStatistics, error) {
+	dhcpServerStatistic, _, err := c.apiClient.ServicesApi.GetDhcpStatistics(c.apiClient.Context, dhcpID)
+	return dhcpServerStatistic, err
 }
 
 func (c *nsxtClient) ListAllTransportNodes() ([]manager.TransportNode, error) {
