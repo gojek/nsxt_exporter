@@ -73,6 +73,18 @@ func buildLoadBalancerStatusResponse(id string, status string, poolStatus string
 	}
 }
 
+func buildLoadBalancers(loadBalancerResponses []mockLoadBalancerResponse) []loadbalancer.LbService {
+	var loadBalancers []loadbalancer.LbService
+	for _, res := range loadBalancerResponses {
+		loadBalancer := loadbalancer.LbService{
+			Id:          res.ID,
+			DisplayName: res.Name,
+		}
+		loadBalancers = append(loadBalancers, loadBalancer)
+	}
+	return loadBalancers
+}
+
 func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description           string
@@ -248,14 +260,7 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 		mockLoadBalancerClient := &mockLoadBalancerClient{
 			responses: tc.loadBalancerResponses,
 		}
-		var loadBalancers []loadbalancer.LbService
-		for _, res := range tc.loadBalancerResponses {
-			loadBalancer := loadbalancer.LbService{
-				Id:          res.ID,
-				DisplayName: res.Name,
-			}
-			loadBalancers = append(loadBalancers, loadBalancer)
-		}
+		loadBalancers := buildLoadBalancers(tc.loadBalancerResponses)
 		logger := log.NewNopLogger()
 		loadBalancerCollector := newLoadBalancerCollector(mockLoadBalancerClient, logger)
 		loadBalancerStatusMetrics := loadBalancerCollector.generateLoadBalancerStatusMetrics(loadBalancers)
