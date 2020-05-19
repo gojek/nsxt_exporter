@@ -39,15 +39,17 @@ type systemStatusMetric struct {
 	Type      string
 	Status    float64
 
-	CPUCores     float64
-	LoadAverage  []float64
-	MemoryCached float64
-	MemoryUse    float64
-	MemoryTotal  float64
-	SwapUse      float64
-	SwapTotal    float64
-	DiskUse      map[string]float64
-	DiskTotal    map[string]float64
+	CPUCores                  float64
+	LoadAverageOneMinute      float64
+	LoadAverageFiveMinutes    float64
+	LoadAverageFifteenMinutes float64
+	MemoryCached              float64
+	MemoryUse                 float64
+	MemoryTotal               float64
+	SwapUse                   float64
+	SwapTotal                 float64
+	DiskUse                   map[string]float64
+	DiskTotal                 map[string]float64
 }
 
 func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -165,9 +167,9 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, nm := range nodeMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
 		if nm.Type == "management" {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[0], nm.IPAddress, nm.Type, "1")  // 1 minute
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[1], nm.IPAddress, nm.Type, "5")  // 5 minutes
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverage[2], nm.IPAddress, nm.Type, "15") // 15 minutes
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageOneMinute, nm.IPAddress, nm.Type, "1")
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFiveMinutes, nm.IPAddress, nm.Type, "5")
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFifteenMinutes, nm.IPAddress, nm.Type, "15")
 			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nm.Type)
 			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nm.Type)
 			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nm.Type)
@@ -255,10 +257,9 @@ func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []admini
 
 			managementNodeMetric.CPUCores = float64(prop.CpuCores)
 
-			managementNodeMetric.LoadAverage = make([]float64, 3)
-			managementNodeMetric.LoadAverage[0] = float64(prop.LoadAverage[0])
-			managementNodeMetric.LoadAverage[1] = float64(prop.LoadAverage[1])
-			managementNodeMetric.LoadAverage[2] = float64(prop.LoadAverage[2])
+			managementNodeMetric.LoadAverageOneMinute = float64(prop.LoadAverage[0])
+			managementNodeMetric.LoadAverageFiveMinutes = float64(prop.LoadAverage[1])
+			managementNodeMetric.LoadAverageFifteenMinutes = float64(prop.LoadAverage[2])
 
 			managementNodeMetric.MemoryUse = float64(prop.MemUsed)
 			managementNodeMetric.MemoryTotal = float64(prop.MemTotal)
