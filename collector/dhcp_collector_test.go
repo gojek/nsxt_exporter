@@ -25,7 +25,7 @@ type mockDHCPResponse struct {
 	DisplayName string
 	Status      string
 	Error       error
-	Statistic   manager.DhcpStatistics
+	Statistics  manager.DhcpStatistics
 }
 
 func (c *mockDHCPClient) ListAllDHCPServers() ([]manager.LogicalDhcpServer, error) {
@@ -46,7 +46,7 @@ func (c *mockDHCPClient) GetDhcpStatus(dhcpID string, localVarOptionals map[stri
 func (c *mockDHCPClient) GetDHCPStatistic(dhcpID string) (manager.DhcpStatistics, error) {
 	for _, res := range c.responses {
 		if res.ID == dhcpID {
-			return res.Statistic, res.Error
+			return res.Statistics, res.Error
 		}
 	}
 	return manager.DhcpStatistics{}, errors.New("dhcp not found")
@@ -66,7 +66,7 @@ func buildDHCPStatisticResponse(id string, err error) mockDHCPResponse {
 		ID:          fakeDHCPServerID + "-" + id,
 		DisplayName: fakeDHCPServerDisplayName + "-" + id,
 		Error:       err,
-		Statistic: manager.DhcpStatistics{
+		Statistics: manager.DhcpStatistics{
 			Acks:      fakeDHCPStatisticValue,
 			Declines:  fakeDHCPStatisticValue,
 			Discovers: fakeDHCPStatisticValue,
