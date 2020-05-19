@@ -4,6 +4,7 @@ import (
 	"github.com/go-kit/kit/log"
 	nsxt "github.com/vmware/go-vmware-nsxt"
 	"github.com/vmware/go-vmware-nsxt/administration"
+	"github.com/vmware/go-vmware-nsxt/loadbalancer"
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
@@ -222,4 +223,28 @@ func (c *nsxtClient) GetLogicalSwitchState(lswitchID string) (manager.LogicalSwi
 func (c *nsxtClient) GetLogicalSwitchStatistic(lswitchID string) (manager.LogicalSwitchStatistics, error) {
 	logicalSwitchStatistic, _, err := c.apiClient.LogicalSwitchingApi.GetLogicalSwitchStatistics(c.apiClient.Context, lswitchID, nil)
 	return logicalSwitchStatistic, err
+}
+
+func (c *nsxtClient) ListAllLoadBalancers() ([]loadbalancer.LbService, error) {
+	var loadBalancers []loadbalancer.LbService
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		lbServiceListResult, _, err := c.apiClient.ServicesApi.ListLoadBalancerServices(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		loadBalancers = append(loadBalancers, lbServiceListResult.Results...)
+		cursor = lbServiceListResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return loadBalancers, nil
+}
+
+func (c *nsxtClient) GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.LbServiceStatus, error) {
+	loadBalancerStatus, _, err := c.apiClient.ServicesApi.ReadLoadBalancerServiceStatus(c.apiClient.Context, loadBalancerID, nil)
+	return loadBalancerStatus, err
 }
