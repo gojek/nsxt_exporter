@@ -13,7 +13,7 @@ import (
 const (
 	fakeLogicalRouterPortID          = "fake-logical-router-port-id"
 	fakeLogicalRouterPortDisplayName = "fake-logical-router-port-name"
-	fakeLogicalRouterID              = "fake-logical-router-id"
+	fakeLogicalRouterPortRouterID    = "fake-logical-router-id"
 )
 
 type mockLogicalRouterPortClient struct {
@@ -75,7 +75,7 @@ func buildLogicalRouterPortResponse(id string, baseValue int64, err error) mockL
 	return mockLogicalRouterPortResponse{
 		ID:               fmt.Sprintf("%s-%s", fakeLogicalRouterPortID, id),
 		DisplayName:      fmt.Sprintf("%s-%s", fakeLogicalRouterPortDisplayName, id),
-		LogicalRouterID:  fmt.Sprintf("%s-%s", fakeLogicalRouterID, id),
+		LogicalRouterID:  fmt.Sprintf("%s-%s", fakeLogicalRouterPortRouterID, id),
 		Error:            err,
 		RxTotalBytes:     baseValue,
 		RxTotalPackets:   baseValue,
