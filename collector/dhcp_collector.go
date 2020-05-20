@@ -11,6 +11,8 @@ import (
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
+var dhcpPossibleStatus = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY"}
+
 func init() {
 	registerCollector("dhcp", createDHCPCollectorFactory)
 }
@@ -34,9 +36,9 @@ type dhcpCollector struct {
 }
 
 type dhcpStatusMetric struct {
-	ID     string
-	Name   string
-	Status float64
+	ID           string
+	Name         string
+	StatusDetail map[string]float64
 }
 
 type dhcpStatisticMetric struct {
@@ -53,8 +55,8 @@ func createDHCPCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) pr
 func newDHCPCollector(dhcpClient client.DHCPClient, logger log.Logger) *dhcpCollector {
 	dhcpStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "dhcp", "status"),
-		"Status of DCHP UP/DOWN",
-		[]string{"id", "name"},
+		"Status of DHCP",
+		[]string{"id", "name", "status"},
 		nil,
 	)
 	dhcpAckPacket := prometheus.NewDesc(
@@ -166,7 +168,9 @@ func (dc *dhcpCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	dhcpStatusMetrics := dc.generateDHCPStatusMetrics(dhcpServers)
 	for _, m := range dhcpStatusMetrics {
-		ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, m.Status, m.ID, m.Name)
+		for status, value := range m.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, value, m.ID, m.Name, status)
+		}
 	}
 	dhcpStatisticMetrics := dc.generateDHCPStatisticMetrics(dhcpServers)
 	for _, m := range dhcpStatisticMetrics {
@@ -195,16 +199,17 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics(dhcpServers []manager.Logical
 			level.Error(dc.logger).Log("msg", "Unable to get dhcp status", "id", dhcp.Id, "err", err)
 			continue
 		}
-		var status float64
-		if strings.ToUpper(dhcpStatus.ServiceStatus) == "UP" {
-			status = 1.0
-		} else {
-			status = 0.0
-		}
 		dhcpStatusMetric := dhcpStatusMetric{
-			Name:   dhcp.DisplayName,
-			ID:     dhcp.Id,
-			Status: status,
+			Name: dhcp.DisplayName,
+			ID:   dhcp.Id,
+		}
+		dhcpStatusMetric.StatusDetail = make(map[string]float64)
+		for _, status := range dhcpPossibleStatus {
+			statusValue := 0.0
+			if status == strings.ToUpper(dhcpStatus.ServiceStatus) {
+				statusValue = 1.0
+			}
+			dhcpStatusMetric.StatusDetail[status] = statusValue
 		}
 		dhcpStatusMetrics = append(dhcpStatusMetrics, dhcpStatusMetric)
 	}
