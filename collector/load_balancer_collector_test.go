@@ -85,6 +85,45 @@ func buildLoadBalancers(loadBalancerResponses []mockLoadBalancerResponse) []load
 	return loadBalancers
 }
 
+func buildExpectedLoadBalancerStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"UP":         0.0,
+		"DOWN":       0.0,
+		"ERROR":      0.0,
+		"NO_STANDBY": 0.0,
+		"DETACHED":   0.0,
+		"DISABLED":   0.0,
+		"UNKNOWN":    0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
+func buildExpectedLoadBalancerPoolStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"UP":           0.0,
+		"PARTIALLY_UP": 0.0,
+		"PRIMARY_DOWN": 0.0,
+		"DOWN":         0.0,
+		"DETACHED":     0.0,
+		"UNKNOWN":      0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
+func buildExpectedLoadBalancerPoolMemberStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"UP":                0.0,
+		"DOWN":              0.0,
+		"DISABLED":          0.0,
+		"GRACEFUL_DISABLED": 0.0,
+		"UNUSED":            0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description           string
@@ -104,120 +143,120 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []loadBalancerStatusMetric{
 				{
-					ID:     "fake-load-balancer-id-01",
-					Name:   "fake-load-balancer-name-01",
-					Status: 1.0,
+					ID:           "fake-load-balancer-id-01",
+					Name:         "fake-load-balancer-name-01",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("UP"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-01",
-							Status: 1.0,
+							ID:           "fake-load-balancer-pool-id-01",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("UP"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("UP"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-02",
-					Name:   "fake-load-balancer-name-02",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-02",
+					Name:         "fake-load-balancer-name-02",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("DOWN"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-02",
-							Status: 0.0,
+							ID:           "fake-load-balancer-pool-id-02",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("PARTIALLY_UP"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("DOWN"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-03",
-					Name:   "fake-load-balancer-name-03",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-03",
+					Name:         "fake-load-balancer-name-03",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("ERROR"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-03",
-							Status: 0.0,
+							ID:           "fake-load-balancer-pool-id-03",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("PRIMARY_DOWN"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("DISABLED"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-04",
-					Name:   "fake-load-balancer-name-04",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-04",
+					Name:         "fake-load-balancer-name-04",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("NO_STANDBY"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-04",
-							Status: 0.0,
+							ID:           "fake-load-balancer-pool-id-04",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("DOWN"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("GRACEFUL_DISABLED"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-05",
-					Name:   "fake-load-balancer-name-05",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-05",
+					Name:         "fake-load-balancer-name-05",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("DETACHED"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-05",
-							Status: 0.0,
+							ID:           "fake-load-balancer-pool-id-05",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("DETACHED"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("UNUSED"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-06",
-					Name:   "fake-load-balancer-name-06",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-06",
+					Name:         "fake-load-balancer-name-06",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("DISABLED"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-06",
-							Status: 0.0,
+							ID:           "fake-load-balancer-pool-id-06",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("UNKNOWN"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("UP"),
 								},
 							},
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-07",
-					Name:   "fake-load-balancer-name-07",
-					Status: 0.0,
+					ID:           "fake-load-balancer-id-07",
+					Name:         "fake-load-balancer-name-07",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("UNKNOWN"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-07",
-							Status: 1.0,
+							ID:           "fake-load-balancer-pool-id-07",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("UP"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("DOWN"),
 								},
 							},
 						},
@@ -232,18 +271,18 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []loadBalancerStatusMetric{
 				{
-					ID:     "fake-load-balancer-id-01",
-					Name:   "fake-load-balancer-name-01",
-					Status: 1.0,
+					ID:           "fake-load-balancer-id-01",
+					Name:         "fake-load-balancer-name-01",
+					StatusDetail: buildExpectedLoadBalancerStatusDetails("UP"),
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-01",
-							Status: 1.0,
+							ID:           "fake-load-balancer-pool-id-01",
+							StatusDetail: buildExpectedLoadBalancerPoolStatusDetails("UP"),
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
-									IPAddress: fakeLoadbalancerPoolMemberIP,
-									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									IPAddress:    fakeLoadbalancerPoolMemberIP,
+									Port:         fakeLoadbalancerPoolMemberPort,
+									StatusDetail: buildExpectedLoadBalancerPoolMemberStatusDetails("UP"),
 								},
 							},
 						},
