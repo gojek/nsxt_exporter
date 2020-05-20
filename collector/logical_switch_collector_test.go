@@ -83,6 +83,19 @@ func buildLogicalSwitchStatisticsResponse(id string, value int64, err error) moc
 	}
 }
 
+func buildExpectedLogicalSwitchStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"SUCCESS":         0.0,
+		"PARTIAL_SUCCESS": 0.0,
+		"IN_PROGRESS":     0.0,
+		"PENDING":         0.0,
+		"FAILED":          0.0,
+		"ORPHANED":        0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description      string
@@ -106,49 +119,49 @@ func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T)
 					ID:              "fake-logical-switch-id-01",
 					Name:            "fake-logical-switch-name-01",
 					TransportZoneID: "fake-transport-zone-id-01",
-					Status:          1.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("SUCCESS"),
 				},
 				{
 					ID:              "fake-logical-switch-id-02",
 					Name:            "fake-logical-switch-name-02",
 					TransportZoneID: "fake-transport-zone-id-02",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("PARTIAL_SUCCESS"),
 				},
 				{
 					ID:              "fake-logical-switch-id-03",
 					Name:            "fake-logical-switch-name-03",
 					TransportZoneID: "fake-transport-zone-id-03",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("IN_PROGRESS"),
 				},
 				{
 					ID:              "fake-logical-switch-id-04",
 					Name:            "fake-logical-switch-name-04",
 					TransportZoneID: "fake-transport-zone-id-04",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("PENDING"),
 				},
 				{
 					ID:              "fake-logical-switch-id-05",
 					Name:            "fake-logical-switch-name-05",
 					TransportZoneID: "fake-transport-zone-id-05",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("FAILED"),
 				},
 				{
 					ID:              "fake-logical-switch-id-06",
 					Name:            "fake-logical-switch-name-06",
 					TransportZoneID: "fake-transport-zone-id-06",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("ORPHANED"),
 				},
 				{
 					ID:              "fake-logical-switch-id-07",
 					Name:            "fake-logical-switch-name-07",
 					TransportZoneID: "fake-transport-zone-id-07",
-					Status:          1.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("SUCCESS"),
 				},
 				{
 					ID:              "fake-logical-switch-id-08",
 					Name:            "fake-logical-switch-name-08",
 					TransportZoneID: "fake-transport-zone-id-08",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("FAILED"),
 				},
 			},
 		},
@@ -163,7 +176,7 @@ func TestLogicalSwitchCollector_GenerateLogicalSwitchStatusMetrics(t *testing.T)
 					ID:              "fake-logical-switch-id-01",
 					Name:            "fake-logical-switch-name-01",
 					TransportZoneID: "fake-transport-zone-id-01",
-					Status:          1.0,
+					StatusDetail:    buildExpectedLogicalSwitchStatusDetails("SUCCESS"),
 				},
 			},
 		},

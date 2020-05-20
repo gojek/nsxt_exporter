@@ -12,6 +12,8 @@ import (
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
+var logicalSwitchPossibleStatus = [...]string{"SUCCESS", "PARTIAL_SUCCESS", "IN_PROGRESS", "PENDING", "FAILED", "ORPHANED"}
+
 func init() {
 	registerCollector("logical_switch", createLogicalSwitchFactory)
 }
@@ -35,7 +37,7 @@ type logicalSwitchStatusMetric struct {
 	ID              string
 	Name            string
 	TransportZoneID string
-	Status          float64
+	StatusDetail    map[string]float64
 }
 
 type logicalSwitchStatisticMetric struct {
@@ -60,8 +62,8 @@ func createLogicalSwitchFactory(apiClient *nsxt.APIClient, logger log.Logger) pr
 func newLogicalSwitchCollector(lswitchClient client.LogicalSwitchClient, logger log.Logger) *logicalSwitchCollector {
 	logicalSwitchStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "logical_switch", "status"),
-		"Status of logical switch success/other",
-		[]string{"id", "name", "transport_zone_id"},
+		"Status of logical switch",
+		[]string{"id", "name", "transport_zone_id", "status"},
 		nil,
 	)
 	rxByteTotal := prometheus.NewDesc(
@@ -149,8 +151,10 @@ func (c *logicalSwitchCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	lswitchStatusMetrics := c.generateLogicalSwitchStatusMetrics(logicalSwitches)
 	for _, m := range lswitchStatusMetrics {
-		labels := []string{m.ID, m.Name, m.TransportZoneID}
-		ch <- prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, m.Status, labels...)
+		for status, value := range m.StatusDetail {
+			labels := []string{m.ID, m.Name, m.TransportZoneID, status}
+			ch <- prometheus.MustNewConstMetric(c.logicalSwitchStatus, prometheus.GaugeValue, value, labels...)
+		}
 	}
 	lswitchStatisticMetrics := c.generateLogicalSwitchStatisticMetrics(logicalSwitches)
 	for _, metric := range lswitchStatisticMetrics {
@@ -173,17 +177,18 @@ func (c *logicalSwitchCollector) generateLogicalSwitchStatusMetrics(logicalSwitc
 			level.Error(c.logger).Log("msg", "Unable to get logical switch status", "id", logicalSwitch.Id, "err", err)
 			continue
 		}
-		var status float64
-		if strings.ToUpper(logicalSwitchStatus.State) == "SUCCESS" {
-			status = 1
-		} else {
-			status = 0
-		}
 		logicalSwitchStatusMetric := logicalSwitchStatusMetric{
 			ID:              logicalSwitch.Id,
 			Name:            logicalSwitch.DisplayName,
 			TransportZoneID: logicalSwitch.TransportZoneId,
-			Status:          status,
+			StatusDetail:    map[string]float64{},
+		}
+		for _, possibleStatus := range logicalSwitchPossibleStatus {
+			statusValue := 0.0
+			if possibleStatus == strings.ToUpper(logicalSwitchStatus.State) {
+				statusValue = 1.0
+			}
+			logicalSwitchStatusMetric.StatusDetail[possibleStatus] = statusValue
 		}
 		logicalSwitchStatusMetrics = append(logicalSwitchStatusMetrics, logicalSwitchStatusMetric)
 	}
