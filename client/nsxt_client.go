@@ -293,3 +293,46 @@ func (c *nsxtClient) GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.
 	loadBalancerStatus, _, err := c.apiClient.ServicesApi.ReadLoadBalancerServiceStatus(c.apiClient.Context, loadBalancerID, nil)
 	return loadBalancerStatus, err
 }
+
+func (c *nsxtClient) ListAllSections() ([]manager.FirewallSection, error) {
+	var firewallSections []manager.FirewallSection
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		firewallSectionsResult, _, err := c.apiClient.ServicesApi.ListSections(c.apiClient.Context, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		firewallSections = append(firewallSections, firewallSectionsResult.Results...)
+		cursor = firewallSectionsResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return firewallSections, nil
+}
+
+func (c *nsxtClient) GetAllRules(sectionID string) ([]manager.FirewallRule, error) {
+	var firewallRules []manager.FirewallRule
+	var cursor string
+	for {
+		localVarOptionals := make(map[string]interface{})
+		localVarOptionals["cursor"] = cursor
+		firewallRulesResult, _, err := c.apiClient.ServicesApi.GetRules(c.apiClient.Context, sectionID, localVarOptionals)
+		if err != nil {
+			return nil, err
+		}
+		firewallRules = append(firewallRules, firewallRulesResult.Results...)
+		cursor = firewallRulesResult.Cursor
+		if len(cursor) == 0 {
+			break
+		}
+	}
+	return firewallRules, nil
+}
+
+func (c *nsxtClient) GetFirewallStats(sectionID, ruleID string) (manager.FirewallStats, error) {
+	firewallStats, _, err := c.apiClient.ServicesApi.GetFirewallStats(c.apiClient.Context, sectionID, ruleID, nil)
+	return firewallStats, err
+}

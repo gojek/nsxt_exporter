@@ -69,3 +69,10 @@ type LoadBalancerClient interface {
 	ListAllLoadBalancers() ([]loadbalancer.LbService, error)
 	GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.LbServiceStatus, error)
 }
+
+// FirewallClient represents Firewall sub-API group of Services for NSXT-T Client
+type FirewallClient interface {
+	ListAllSections() ([]manager.FirewallSection, error)
+	GetAllRules(sectionId string) ([]manager.FirewallRule, error)
+	GetFirewallStats(sectionId string, ruleId string) (manager.FirewallStats, error)
+}
