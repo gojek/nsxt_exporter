@@ -104,9 +104,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []loadBalancerStatusMetric{
 				{
-					ID:     "fake-load-balancer-id-01",
-					Name:   "fake-load-balancer-name-01",
-					Status: 1.0,
+					ID:   "fake-load-balancer-id-01",
+					Name: "fake-load-balancer-name-01",
+					StatusDetail: map[string]float64{
+						"UP":         1.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-01",
@@ -121,9 +129,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-02",
-					Name:   "fake-load-balancer-name-02",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-02",
+					Name: "fake-load-balancer-name-02",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       1.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-02",
@@ -138,9 +154,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-03",
-					Name:   "fake-load-balancer-name-03",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-03",
+					Name: "fake-load-balancer-name-03",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      1.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-03",
@@ -155,9 +179,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-04",
-					Name:   "fake-load-balancer-name-04",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-04",
+					Name: "fake-load-balancer-name-04",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 1.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-04",
@@ -172,9 +204,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-05",
-					Name:   "fake-load-balancer-name-05",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-05",
+					Name: "fake-load-balancer-name-05",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   1.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-05",
@@ -189,9 +229,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-06",
-					Name:   "fake-load-balancer-name-06",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-06",
+					Name: "fake-load-balancer-name-06",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   1.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-06",
@@ -206,9 +254,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 						},
 					},
 				}, {
-					ID:     "fake-load-balancer-id-07",
-					Name:   "fake-load-balancer-name-07",
-					Status: 0.0,
+					ID:   "fake-load-balancer-id-07",
+					Name: "fake-load-balancer-name-07",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    1.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-07",
@@ -232,9 +288,17 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []loadBalancerStatusMetric{
 				{
-					ID:     "fake-load-balancer-id-01",
-					Name:   "fake-load-balancer-name-01",
-					Status: 1.0,
+					ID:   "fake-load-balancer-id-01",
+					Name: "fake-load-balancer-name-01",
+					StatusDetail: map[string]float64{
+						"UP":         1.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+						"DETACHED":   0.0,
+						"DISABLED":   0.0,
+						"UNKNOWN":    0.0,
+					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
 							ID:     "fake-load-balancer-pool-id-01",
