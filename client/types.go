@@ -15,6 +15,7 @@ type LogicalPortClient interface {
 // LogicalRouterClient represents API group logical router for NSX-T client.
 type LogicalRouterClient interface {
 	ListAllLogicalRouters() ([]manager.LogicalRouter, error)
+	GetLogicalRouterStatus(logicalRouterID string) (manager.LogicalRouterStatus, error)
 	ListAllNatRules(logicalRouterID string) ([]manager.NatRule, error)
 	GetNatStatisticsPerRule(logicalRouterID, ruleID string) (manager.NatStatisticsPerRule, error)
 }
