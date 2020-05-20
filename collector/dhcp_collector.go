@@ -34,9 +34,10 @@ type dhcpCollector struct {
 }
 
 type dhcpStatusMetric struct {
-	ID     string
-	Name   string
-	Status float64
+	ID         string
+	Name       string
+	Status     float64
+	StatusEnum string
 }
 
 type dhcpStatisticMetric struct {
@@ -202,9 +203,10 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics(dhcpServers []manager.Logical
 			status = 0.0
 		}
 		dhcpStatusMetric := dhcpStatusMetric{
-			Name:   dhcp.DisplayName,
-			ID:     dhcp.Id,
-			Status: status,
+			Name:       dhcp.DisplayName,
+			ID:         dhcp.Id,
+			Status:     status,
+			StatusEnum: strings.ToUpper(dhcpStatus.ServiceStatus),
 		}
 		dhcpStatusMetrics = append(dhcpStatusMetrics, dhcpStatusMetric)
 	}
