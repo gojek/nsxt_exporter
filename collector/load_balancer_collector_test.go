@@ -130,7 +130,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									StatusDetail: map[string]float64{
+										"UP":                1.0,
+										"DOWN":              0.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -162,7 +168,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									StatusDetail: map[string]float64{
+										"UP":                0.0,
+										"DOWN":              1.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -194,7 +206,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									StatusDetail: map[string]float64{
+										"UP":                0.0,
+										"DOWN":              0.0,
+										"DISABLED":          1.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -226,7 +244,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									StatusDetail: map[string]float64{
+										"UP":                0.0,
+										"DOWN":              0.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 1.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -258,7 +282,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									StatusDetail: map[string]float64{
+										"UP":                0.0,
+										"DOWN":              0.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            1.0,
+									},
 								},
 							},
 						},
@@ -290,7 +320,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									StatusDetail: map[string]float64{
+										"UP":                1.0,
+										"DOWN":              0.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -322,7 +358,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    0.0,
+									StatusDetail: map[string]float64{
+										"UP":                0.0,
+										"DOWN":              1.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},
@@ -363,7 +405,13 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
 									Port:      fakeLoadbalancerPoolMemberPort,
-									Status:    1.0,
+									StatusDetail: map[string]float64{
+										"UP":                1.0,
+										"DOWN":              0.0,
+										"DISABLED":          0.0,
+										"GRACEFUL_DISABLED": 0.0,
+										"UNUSED":            0.0,
+									},
 								},
 							},
 						},

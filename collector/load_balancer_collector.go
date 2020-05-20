@@ -14,6 +14,7 @@ import (
 
 var loadBalancerPossibleStatus = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY", "DETACHED", "DISABLED", "UNKNOWN"}
 var loadBalancerPoolPossibleStatus = [...]string{"UP", "PARTIALLY_UP", "PRIMARY_DOWN", "DOWN", "DETACHED", "UNKNOWN"}
+var loadBalancerPoolMemberPossibleStatus = [...]string{"UP", "DOWN", "DISABLED", "GRACEFUL_DISABLED", "UNUSED"}
 
 func init() {
 	registerCollector("load_balancer", createLoadBalancerCollectorFactory)
@@ -42,9 +43,9 @@ type loadBalancerPoolStatusMetric struct {
 }
 
 type loadBalancerPoolMemberStatusMetric struct {
-	IPAddress string
-	Port      string
-	Status    float64
+	IPAddress    string
+	Port         string
+	StatusDetail map[string]float64
 }
 
 func createLoadBalancerCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -67,8 +68,8 @@ func newLoadBalancerCollector(client client.LoadBalancerClient, logger log.Logge
 	)
 	loadBalancerPoolMemberStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "load_balancer", "pool_member_status"),
-		"Status of Load Balancer pool member UP/DOWN",
-		[]string{"ip_address", "port", "load_balancer_pool_id", "load_balancer_id"},
+		"Status of Load Balancer pool member",
+		[]string{"ip_address", "port", "load_balancer_pool_id", "load_balancer_id", "status"},
 		nil,
 	)
 	return &loadBalancerCollector{
@@ -106,7 +107,9 @@ func (c *loadBalancerCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolStatus, prometheus.GaugeValue, value, poolStatus.ID, metric.ID, status)
 			}
 			for _, memberStatus := range poolStatus.MembersStatus {
-				ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolMemberStatus, prometheus.GaugeValue, memberStatus.Status, memberStatus.IPAddress, memberStatus.Port, poolStatus.ID, metric.ID)
+				for status, value := range memberStatus.StatusDetail {
+					ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolMemberStatus, prometheus.GaugeValue, value, memberStatus.IPAddress, memberStatus.Port, poolStatus.ID, metric.ID, status)
+				}
 			}
 		}
 	}
@@ -145,14 +148,17 @@ func (c *loadBalancerCollector) generateLoadBalancerStatusMetrics(loadBalancers 
 				poolStatusMetric.StatusDetail[status] = statusValue
 			}
 			for _, memberStatus := range poolStatus.Members {
-				memberStatusValue := 0.0
-				if strings.ToUpper(memberStatus.Status) == "UP" {
-					memberStatusValue = 1.0
-				}
 				memberStatusMetric := loadBalancerPoolMemberStatusMetric{
-					IPAddress: memberStatus.IPAddress,
-					Port:      memberStatus.Port,
-					Status:    memberStatusValue,
+					IPAddress:    memberStatus.IPAddress,
+					Port:         memberStatus.Port,
+					StatusDetail: map[string]float64{},
+				}
+				for _, status := range loadBalancerPoolMemberPossibleStatus {
+					statusValue := 0.0
+					if status == strings.ToUpper(memberStatus.Status) {
+						statusValue = 1.0
+					}
+					memberStatusMetric.StatusDetail[status] = statusValue
 				}
 				poolStatusMetric.MembersStatus = append(poolStatusMetric.MembersStatus, memberStatusMetric)
 			}
