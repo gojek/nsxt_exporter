@@ -2,6 +2,7 @@ package collector
 
 import (
 	"nsxt_exporter/client"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -9,6 +10,8 @@ import (
 	nsxt "github.com/vmware/go-vmware-nsxt"
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
+
+var logicalRouterPossibleHAStatus = [...]string{"ACTIVE", "STANDBY"}
 
 func init() {
 	registerCollector("logical_router", createLogicalRouterCollectorFactory)
@@ -24,11 +27,11 @@ type logicalRouterCollector struct {
 }
 
 type logicalRouterStatusMetric struct {
-	ID                     string
-	Name                   string
-	TransportNodeID        string
-	ServiceRouterID        string
-	HighAvailabilityStatus string
+	ID                           string
+	Name                         string
+	TransportNodeID              string
+	ServiceRouterID              string
+	HighAvailabilityStatusDetail map[string]float64
 }
 
 type natRuleStatisticMetric struct {
@@ -86,8 +89,10 @@ func (c *logicalRouterCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	logicalRouterStatusMetrics := c.generateLogicalRouterStatusMetrics(logicalRouters)
 	for _, lrouterMetric := range logicalRouterStatusMetrics {
-		labels := []string{lrouterMetric.ID, lrouterMetric.Name, lrouterMetric.TransportNodeID, lrouterMetric.ServiceRouterID, lrouterMetric.HighAvailabilityStatus}
-		ch <- prometheus.MustNewConstMetric(c.logicalRouterStatus, prometheus.GaugeValue, 1.0, labels...)
+		for haStatus, value := range lrouterMetric.HighAvailabilityStatusDetail {
+			labels := []string{lrouterMetric.ID, lrouterMetric.Name, lrouterMetric.TransportNodeID, lrouterMetric.ServiceRouterID, haStatus}
+			ch <- prometheus.MustNewConstMetric(c.logicalRouterStatus, prometheus.GaugeValue, value, labels...)
+		}
 	}
 	natRuleStatisticMetrics := c.generateNatRuleStatisticMetrics(logicalRouters)
 	for _, natMetric := range natRuleStatisticMetrics {
@@ -106,11 +111,18 @@ func (c *logicalRouterCollector) generateLogicalRouterStatusMetrics(logicalRoute
 		}
 		for _, status := range lrouterStatus.PerNodeStatus {
 			logicalRouterStatusMetric := logicalRouterStatusMetric{
-				ID:                     logicalRouter.Id,
-				Name:                   logicalRouter.DisplayName,
-				TransportNodeID:        status.TransportNodeId,
-				ServiceRouterID:        status.ServiceRouterId,
-				HighAvailabilityStatus: status.HighAvailabilityStatus,
+				ID:              logicalRouter.Id,
+				Name:            logicalRouter.DisplayName,
+				TransportNodeID: status.TransportNodeId,
+				ServiceRouterID: status.ServiceRouterId,
+			}
+			logicalRouterStatusMetric.HighAvailabilityStatusDetail = make(map[string]float64)
+			for _, haStatus := range logicalRouterPossibleHAStatus {
+				statusValue := 0.0
+				if haStatus == strings.ToUpper(status.HighAvailabilityStatus) {
+					statusValue = 1.0
+				}
+				logicalRouterStatusMetric.HighAvailabilityStatusDetail[haStatus] = statusValue
 			}
 			logicalRouterStatusMetrics = append(logicalRouterStatusMetrics, logicalRouterStatusMetric)
 		}

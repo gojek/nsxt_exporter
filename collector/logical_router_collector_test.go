@@ -139,6 +139,15 @@ func buildLogicalRouters(logicalRouterResponses []mockLogicalRouterResponse) []m
 	return logicalRouters
 }
 
+func buildExpectedHighAvailabilityStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"ACTIVE":  0.0,
+		"STANDBY": 0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestLogicalRouterCollector_GenerateLogicalRouterStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description            string
@@ -153,25 +162,25 @@ func TestLogicalRouterCollector_GenerateLogicalRouterStatusMetrics(t *testing.T)
 			},
 			expectedMetrics: []logicalRouterStatusMetric{
 				{
-					ID:                     fmt.Sprintf("%s-1", fakeLogicalRouterID),
-					Name:                   fmt.Sprintf("%s-1", fakeLogicalRouterName),
-					TransportNodeID:        fakeLogicalRouterTransportNodeID,
-					ServiceRouterID:        fakeLogicalRouterServiceRouterID,
-					HighAvailabilityStatus: "ACTIVE",
+					ID:                           fmt.Sprintf("%s-1", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-1", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
 				},
 				{
-					ID:                     fmt.Sprintf("%s-1", fakeLogicalRouterID),
-					Name:                   fmt.Sprintf("%s-1", fakeLogicalRouterName),
-					TransportNodeID:        fakeLogicalRouterTransportNodeID,
-					ServiceRouterID:        fakeLogicalRouterServiceRouterID,
-					HighAvailabilityStatus: "STANDBY",
+					ID:                           fmt.Sprintf("%s-1", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-1", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("STANDBY"),
 				},
 				{
-					ID:                     fmt.Sprintf("%s-2", fakeLogicalRouterID),
-					Name:                   fmt.Sprintf("%s-2", fakeLogicalRouterName),
-					TransportNodeID:        fakeLogicalRouterTransportNodeID,
-					ServiceRouterID:        fakeLogicalRouterServiceRouterID,
-					HighAvailabilityStatus: "ACTIVE",
+					ID:                           fmt.Sprintf("%s-2", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-2", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
 				},
 			},
 		},
@@ -183,11 +192,11 @@ func TestLogicalRouterCollector_GenerateLogicalRouterStatusMetrics(t *testing.T)
 			},
 			expectedMetrics: []logicalRouterStatusMetric{
 				{
-					ID:                     fmt.Sprintf("%s-2", fakeLogicalRouterID),
-					Name:                   fmt.Sprintf("%s-2", fakeLogicalRouterName),
-					TransportNodeID:        fakeLogicalRouterTransportNodeID,
-					ServiceRouterID:        fakeLogicalRouterServiceRouterID,
-					HighAvailabilityStatus: "ACTIVE",
+					ID:                           fmt.Sprintf("%s-2", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-2", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
 				},
 			},
 		},
