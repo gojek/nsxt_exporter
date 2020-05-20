@@ -117,8 +117,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-01",
-							Status: 1.0,
+							ID: "fake-load-balancer-pool-id-01",
+							StatusDetail: map[string]float64{
+								"UP":           1.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -142,8 +149,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-02",
-							Status: 0.0,
+							ID: "fake-load-balancer-pool-id-02",
+							StatusDetail: map[string]float64{
+								"UP":           0.0,
+								"PARTIALLY_UP": 1.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -167,8 +181,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-03",
-							Status: 0.0,
+							ID: "fake-load-balancer-pool-id-03",
+							StatusDetail: map[string]float64{
+								"UP":           0.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 1.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -192,8 +213,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-04",
-							Status: 0.0,
+							ID: "fake-load-balancer-pool-id-04",
+							StatusDetail: map[string]float64{
+								"UP":           0.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         1.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -217,8 +245,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-05",
-							Status: 0.0,
+							ID: "fake-load-balancer-pool-id-05",
+							StatusDetail: map[string]float64{
+								"UP":           0.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     1.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -242,8 +277,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-06",
-							Status: 0.0,
+							ID: "fake-load-balancer-pool-id-06",
+							StatusDetail: map[string]float64{
+								"UP":           0.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      1.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -267,8 +309,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-07",
-							Status: 1.0,
+							ID: "fake-load-balancer-pool-id-07",
+							StatusDetail: map[string]float64{
+								"UP":           1.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,
@@ -301,8 +350,15 @@ func TestLoadBalancerCollector_GenerateLoadBalancerStatusMetrics(t *testing.T) {
 					},
 					PoolsStatus: []loadBalancerPoolStatusMetric{
 						{
-							ID:     "fake-load-balancer-pool-id-01",
-							Status: 1.0,
+							ID: "fake-load-balancer-pool-id-01",
+							StatusDetail: map[string]float64{
+								"UP":           1.0,
+								"PARTIALLY_UP": 0.0,
+								"PRIMARY_DOWN": 0.0,
+								"DOWN":         0.0,
+								"DETACHED":     0.0,
+								"UNKNOWN":      0.0,
+							},
 							MembersStatus: []loadBalancerPoolMemberStatusMetric{
 								{
 									IPAddress: fakeLoadbalancerPoolMemberIP,

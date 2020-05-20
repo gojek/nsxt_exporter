@@ -13,6 +13,7 @@ import (
 )
 
 var loadBalancerPossibleStatus = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY", "DETACHED", "DISABLED", "UNKNOWN"}
+var loadBalancerPoolPossibleStatus = [...]string{"UP", "PARTIALLY_UP", "PRIMARY_DOWN", "DOWN", "DETACHED", "UNKNOWN"}
 
 func init() {
 	registerCollector("load_balancer", createLoadBalancerCollectorFactory)
@@ -36,7 +37,7 @@ type loadBalancerStatusMetric struct {
 
 type loadBalancerPoolStatusMetric struct {
 	ID            string
-	Status        float64
+	StatusDetail  map[string]float64
 	MembersStatus []loadBalancerPoolMemberStatusMetric
 }
 
@@ -60,8 +61,8 @@ func newLoadBalancerCollector(client client.LoadBalancerClient, logger log.Logge
 	)
 	loadBalancerPoolStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "load_balancer", "pool_status"),
-		"Status of Load Balancer pool UP/DOWN",
-		[]string{"id", "load_balancer_id"},
+		"Status of Load Balancer pool",
+		[]string{"id", "load_balancer_id", "status"},
 		nil,
 	)
 	loadBalancerPoolMemberStatus := prometheus.NewDesc(
@@ -101,7 +102,9 @@ func (c *loadBalancerCollector) Collect(ch chan<- prometheus.Metric) {
 			ch <- prometheus.MustNewConstMetric(c.loadBalancerStatus, prometheus.GaugeValue, value, metric.ID, metric.Name, status)
 		}
 		for _, poolStatus := range metric.PoolsStatus {
-			ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolStatus, prometheus.GaugeValue, poolStatus.Status, poolStatus.ID, metric.ID)
+			for status, value := range poolStatus.StatusDetail {
+				ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolStatus, prometheus.GaugeValue, value, poolStatus.ID, metric.ID, status)
+			}
 			for _, memberStatus := range poolStatus.MembersStatus {
 				ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolMemberStatus, prometheus.GaugeValue, memberStatus.Status, memberStatus.IPAddress, memberStatus.Port, poolStatus.ID, metric.ID)
 			}
@@ -130,13 +133,16 @@ func (c *loadBalancerCollector) generateLoadBalancerStatusMetrics(loadBalancers 
 			loadBalancerStatusMetric.StatusDetail[status] = statusValue
 		}
 		for _, poolStatus := range lbStatus.Pools {
-			poolStatusValue := 0.0
-			if strings.ToUpper(poolStatus.Status) == "UP" {
-				poolStatusValue = 1.0
-			}
 			poolStatusMetric := loadBalancerPoolStatusMetric{
-				ID:     poolStatus.PoolId,
-				Status: poolStatusValue,
+				ID:           poolStatus.PoolId,
+				StatusDetail: map[string]float64{},
+			}
+			for _, status := range loadBalancerPoolPossibleStatus {
+				statusValue := 0.0
+				if status == strings.ToUpper(poolStatus.Status) {
+					statusValue = 1.0
+				}
+				poolStatusMetric.StatusDetail[status] = statusValue
 			}
 			for _, memberStatus := range poolStatus.Members {
 				memberStatusValue := 0.0
