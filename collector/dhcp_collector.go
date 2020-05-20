@@ -11,7 +11,7 @@ import (
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
-var dhcpStatuses = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY"}
+var dhcpPossibleStatus = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY"}
 
 func init() {
 	registerCollector("dhcp", createDHCPCollectorFactory)
@@ -36,9 +36,9 @@ type dhcpCollector struct {
 }
 
 type dhcpStatusMetric struct {
-	ID     string
-	Name   string
-	Status string
+	ID           string
+	Name         string
+	StatusDetail map[string]float64
 }
 
 type dhcpStatisticMetric struct {
@@ -168,12 +168,8 @@ func (dc *dhcpCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	dhcpStatusMetrics := dc.generateDHCPStatusMetrics(dhcpServers)
 	for _, m := range dhcpStatusMetrics {
-		for _, status := range dhcpStatuses {
-			statusValue := 0.0
-			if status == m.Status {
-				statusValue = 1.0
-			}
-			ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, statusValue, m.ID, m.Name, status)
+		for status, value := range m.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(dc.dhcpStatus, prometheus.GaugeValue, value, m.ID, m.Name, status)
 		}
 	}
 	dhcpStatisticMetrics := dc.generateDHCPStatisticMetrics(dhcpServers)
@@ -204,9 +200,16 @@ func (dc *dhcpCollector) generateDHCPStatusMetrics(dhcpServers []manager.Logical
 			continue
 		}
 		dhcpStatusMetric := dhcpStatusMetric{
-			Name:   dhcp.DisplayName,
-			ID:     dhcp.Id,
-			Status: strings.ToUpper(dhcpStatus.ServiceStatus),
+			Name: dhcp.DisplayName,
+			ID:   dhcp.Id,
+		}
+		dhcpStatusMetric.StatusDetail = make(map[string]float64)
+		for _, status := range dhcpPossibleStatus {
+			statusValue := 0.0
+			if status == strings.ToUpper(dhcpStatus.ServiceStatus) {
+				statusValue = 1.0
+			}
+			dhcpStatusMetric.StatusDetail[status] = statusValue
 		}
 		dhcpStatusMetrics = append(dhcpStatusMetrics, dhcpStatusMetric)
 	}

@@ -222,29 +222,59 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{
-					ID:     "fake-dhcp-server-id-01",
-					Name:   "fake-dhcp-server-name-01",
-					Status: "UP",
+					ID:   "fake-dhcp-server-id-01",
+					Name: "fake-dhcp-server-name-01",
+					StatusDetail: map[string]float64{
+						"UP":         1.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+					},
 				}, {
-					ID:     "fake-dhcp-server-id-02",
-					Name:   "fake-dhcp-server-name-02",
-					Status: "DOWN",
+					ID:   "fake-dhcp-server-id-02",
+					Name: "fake-dhcp-server-name-02",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       1.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+					},
 				}, {
-					ID:     "fake-dhcp-server-id-03",
-					Name:   "fake-dhcp-server-name-03",
-					Status: "ERROR",
+					ID:   "fake-dhcp-server-id-03",
+					Name: "fake-dhcp-server-name-03",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      1.0,
+						"NO_STANDBY": 0.0,
+					},
 				}, {
-					ID:     "fake-dhcp-server-id-04",
-					Name:   "fake-dhcp-server-name-04",
-					Status: "NO_STANDBY",
+					ID:   "fake-dhcp-server-id-04",
+					Name: "fake-dhcp-server-name-04",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 1.0,
+					},
 				}, {
-					ID:     "fake-dhcp-server-id-05",
-					Name:   "fake-dhcp-server-name-05",
-					Status: "UP",
+					ID:   "fake-dhcp-server-id-05",
+					Name: "fake-dhcp-server-name-05",
+					StatusDetail: map[string]float64{
+						"UP":         1.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+					},
 				}, {
-					ID:     "fake-dhcp-server-id-06",
-					Name:   "fake-dhcp-server-name-06",
-					Status: "DOWN",
+					ID:   "fake-dhcp-server-id-06",
+					Name: "fake-dhcp-server-name-06",
+					StatusDetail: map[string]float64{
+						"UP":         0.0,
+						"DOWN":       1.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+					},
 				},
 			},
 		}, {
@@ -255,9 +285,14 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{
-					ID:     "fake-dhcp-server-id-01",
-					Name:   "fake-dhcp-server-name-01",
-					Status: "UP",
+					ID:   "fake-dhcp-server-id-01",
+					Name: "fake-dhcp-server-name-01",
+					StatusDetail: map[string]float64{
+						"UP":         1.0,
+						"DOWN":       0.0,
+						"ERROR":      0.0,
+						"NO_STANDBY": 0.0,
+					},
 				},
 			},
 		}, {
