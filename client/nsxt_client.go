@@ -39,6 +39,11 @@ func (c *nsxtClient) ListAllLogicalRouters() ([]manager.LogicalRouter, error) {
 	return logicalRouters, nil
 }
 
+func (c *nsxtClient) GetLogicalRouterStatus(lrouterID string) (manager.LogicalRouterStatus, error) {
+	lrouterStatus, _, err := c.apiClient.LogicalRoutingAndServicesApi.GetLogicalRouterStatus(c.apiClient.Context, lrouterID, nil)
+	return lrouterStatus, err
+}
+
 func (c *nsxtClient) ListAllNatRules(lrouterID string) ([]manager.NatRule, error) {
 	var natRules []manager.NatRule
 	var cursor string

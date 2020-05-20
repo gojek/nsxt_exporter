@@ -11,11 +11,14 @@ import (
 )
 
 const (
-	fakeLogicalRouterID = "fake-logical-router-id"
-	fakeNatRuleID       = "fake-nat-rule-id"
-	fakeNatRuleName     = "fake-nat-rule-name"
-	fakeNatTotalPackets = 1
-	fakeNatTotalBytes   = 1
+	fakeLogicalRouterID              = "fake-logical-router-id"
+	fakeLogicalRouterName            = "fake-logical-router-name"
+	fakeLogicalRouterServiceRouterID = "fake-service-router-id"
+	fakeLogicalRouterTransportNodeID = "fake-transport-node-id"
+	fakeNatRuleID                    = "fake-nat-rule-id"
+	fakeNatRuleName                  = "fake-nat-rule-name"
+	fakeNatTotalPackets              = 1
+	fakeNatTotalBytes                = 1
 )
 
 type mockLogicalRouterClient struct {
@@ -24,9 +27,10 @@ type mockLogicalRouterClient struct {
 }
 
 type mockLogicalRouterResponse struct {
-	LogicalRouter manager.LogicalRouter
-	NatRules      []manager.NatRule
-	Error         error
+	LogicalRouter       manager.LogicalRouter
+	LogicalRouterStatus []manager.LogicalRouterStatusPerNode
+	NatRules            []manager.NatRule
+	Error               error
 
 	NatTotalPackets int64
 	NatTotalBytes   int64
@@ -34,6 +38,18 @@ type mockLogicalRouterResponse struct {
 
 func (c *mockLogicalRouterClient) ListAllLogicalRouters() ([]manager.LogicalRouter, error) {
 	panic("unused function. Only used to satisfy LogicalRouterClient interface")
+}
+
+func (c *mockLogicalRouterClient) GetLogicalRouterStatus(lrouterID string) (manager.LogicalRouterStatus, error) {
+	for _, res := range c.responses {
+		if res.LogicalRouter.Id == lrouterID {
+			return manager.LogicalRouterStatus{
+				LogicalRouterId: lrouterID,
+				PerNodeStatus:   res.LogicalRouterStatus,
+			}, res.Error
+		}
+	}
+	return manager.LogicalRouterStatus{}, errors.New("error logical router not found")
 }
 
 func (c *mockLogicalRouterClient) ListAllNatRules(lrouterID string) ([]manager.NatRule, error) {
@@ -77,7 +93,26 @@ func (c *mockLogicalRouterClient) GetNatStatisticsPerRule(lrouterID, ruleID stri
 	return manager.NatStatisticsPerRule{}, errors.New("error nat rule not found")
 }
 
-func buildLogicalRouterResponse(lrouterID string, ruleIDs []string, err error) mockLogicalRouterResponse {
+func buildLogicalRouterResponseWithStatus(lrouterID string, highAvailabilityStatus []string, err error) mockLogicalRouterResponse {
+	var lrouterStatus []manager.LogicalRouterStatusPerNode
+	for _, status := range highAvailabilityStatus {
+		lrouterStatus = append(lrouterStatus, manager.LogicalRouterStatusPerNode{
+			HighAvailabilityStatus: status,
+			ServiceRouterId:        fakeLogicalRouterServiceRouterID,
+			TransportNodeId:        fakeLogicalRouterTransportNodeID,
+		})
+	}
+	return mockLogicalRouterResponse{
+		LogicalRouter: manager.LogicalRouter{
+			Id:          fmt.Sprintf("%s-%s", fakeLogicalRouterID, lrouterID),
+			DisplayName: fmt.Sprintf("%s-%s", fakeLogicalRouterName, lrouterID),
+		},
+		LogicalRouterStatus: lrouterStatus,
+		Error:               err,
+	}
+}
+
+func buildLogicalRouterResponseWithNatRules(lrouterID string, ruleIDs []string, err error) mockLogicalRouterResponse {
 	var natRules []manager.NatRule
 	for _, ruleID := range ruleIDs {
 		natRules = append(natRules, manager.NatRule{
@@ -104,6 +139,85 @@ func buildLogicalRouters(logicalRouterResponses []mockLogicalRouterResponse) []m
 	return logicalRouters
 }
 
+func buildExpectedHighAvailabilityStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"ACTIVE":  0.0,
+		"STANDBY": 0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
+func TestLogicalRouterCollector_GenerateLogicalRouterStatusMetrics(t *testing.T) {
+	testcases := []struct {
+		description            string
+		logicalRouterResponses []mockLogicalRouterResponse
+		expectedMetrics        []logicalRouterStatusMetric
+	}{
+		{
+			description: "Should return correct status metrics",
+			logicalRouterResponses: []mockLogicalRouterResponse{
+				buildLogicalRouterResponseWithStatus("1", []string{"ACTIVE", "STANDBY"}, nil),
+				buildLogicalRouterResponseWithStatus("2", []string{"ACTIVE"}, nil),
+			},
+			expectedMetrics: []logicalRouterStatusMetric{
+				{
+					ID:                           fmt.Sprintf("%s-1", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-1", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
+				},
+				{
+					ID:                           fmt.Sprintf("%s-1", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-1", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("STANDBY"),
+				},
+				{
+					ID:                           fmt.Sprintf("%s-2", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-2", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
+				},
+			},
+		},
+		{
+			description: "Should only return status with valid response",
+			logicalRouterResponses: []mockLogicalRouterResponse{
+				buildLogicalRouterResponseWithStatus("1", []string{"ACTIVE", "STANDBY"}, errors.New("error get logical router status")),
+				buildLogicalRouterResponseWithStatus("2", []string{"ACTIVE"}, nil),
+			},
+			expectedMetrics: []logicalRouterStatusMetric{
+				{
+					ID:                           fmt.Sprintf("%s-2", fakeLogicalRouterID),
+					Name:                         fmt.Sprintf("%s-2", fakeLogicalRouterName),
+					TransportNodeID:              fakeLogicalRouterTransportNodeID,
+					ServiceRouterID:              fakeLogicalRouterServiceRouterID,
+					HighAvailabilityStatusDetail: buildExpectedHighAvailabilityStatusDetails("ACTIVE"),
+				},
+			},
+		},
+		{
+			description:            "Should return empty metrics when empty response",
+			logicalRouterResponses: []mockLogicalRouterResponse{},
+			expectedMetrics:        []logicalRouterStatusMetric{},
+		},
+	}
+	for _, tc := range testcases {
+		mockLogicalRouterClient := &mockLogicalRouterClient{
+			responses: tc.logicalRouterResponses,
+		}
+		logger := log.NewNopLogger()
+		lrouterCollector := newLogicalRouterCollector(mockLogicalRouterClient, logger)
+		logicalRouters := buildLogicalRouters(tc.logicalRouterResponses)
+		metrics := lrouterCollector.generateLogicalRouterStatusMetrics(logicalRouters)
+		assert.ElementsMatch(t, tc.expectedMetrics, metrics, tc.description)
+	}
+}
+
 func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *testing.T) {
 	testcases := []struct {
 		description            string
@@ -114,8 +228,8 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		{
 			description: "Should return correct statistics metrics",
 			logicalRouterResponses: []mockLogicalRouterResponse{
-				buildLogicalRouterResponse("1", []string{"1", "2"}, nil),
-				buildLogicalRouterResponse("2", []string{"3"}, nil),
+				buildLogicalRouterResponseWithNatRules("1", []string{"1", "2"}, nil),
+				buildLogicalRouterResponseWithNatRules("2", []string{"3"}, nil),
 			},
 			expectedMetrics: []natRuleStatisticMetric{
 				{
@@ -144,8 +258,8 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		{
 			description: "Should only return statistics with valid response",
 			logicalRouterResponses: []mockLogicalRouterResponse{
-				buildLogicalRouterResponse("1", []string{"1", "2"}, errors.New("error get nat rule statistic")),
-				buildLogicalRouterResponse("2", []string{"3"}, nil),
+				buildLogicalRouterResponseWithNatRules("1", []string{"1", "2"}, errors.New("error get nat rule statistic")),
+				buildLogicalRouterResponseWithNatRules("2", []string{"3"}, nil),
 			},
 			expectedMetrics: []natRuleStatisticMetric{
 				{
@@ -170,14 +284,13 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 		},
 	}
 	for _, tc := range testcases {
-		mockLogicalRouterCLient := &mockLogicalRouterClient{
+		mockLogicalRouterClient := &mockLogicalRouterClient{
 			responses: tc.logicalRouterResponses,
 		}
 		logger := log.NewNopLogger()
-		lrouterCollector := newLogicalRouterCollector(mockLogicalRouterCLient, logger)
+		lrouterCollector := newLogicalRouterCollector(mockLogicalRouterClient, logger)
 		logicalRouters := buildLogicalRouters(tc.logicalRouterResponses)
 		metrics := lrouterCollector.generateNatRuleStatisticMetrics(logicalRouters)
-		fmt.Println(metrics)
 		assert.ElementsMatch(t, tc.expectedMetrics, metrics, tc.description)
 	}
 }
