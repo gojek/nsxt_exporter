@@ -67,6 +67,16 @@ func buildLogicalPortResponse(id string, status string, err error) mockLogicalPo
 	}
 }
 
+func buildExpectedLogicalPortStatusDetail(nonZeroStatus string) map[string]float64 {
+	statusDetail := map[string]float64{
+		"UP":      0.0,
+		"DOWN":    0.0,
+		"UNKNOWN": 0.0,
+	}
+	statusDetail[nonZeroStatus] = 1.0
+	return statusDetail
+}
+
 func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description          string
@@ -87,17 +97,17 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 					ID:              "fake-logical-port-id-01",
 					Name:            "fake-logical-port-name-01",
 					LogicalSwitchID: "fake-logical-switch-id-01",
-					Status:          1.0,
+					StatusDetail:    buildExpectedLogicalPortStatusDetail("UP"),
 				}, {
 					ID:              "fake-logical-port-id-02",
 					Name:            "fake-logical-port-name-02",
 					LogicalSwitchID: "fake-logical-switch-id-02",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalPortStatusDetail("DOWN"),
 				}, {
 					ID:              "fake-logical-port-id-03",
 					Name:            "fake-logical-port-name-03",
 					LogicalSwitchID: "fake-logical-switch-id-03",
-					Status:          0.0,
+					StatusDetail:    buildExpectedLogicalPortStatusDetail("UNKNOWN"),
 				},
 			},
 		}, {
@@ -112,7 +122,7 @@ func TestLogicalPortCollector_GenerateLogicalPortStatusMetrics(t *testing.T) {
 					ID:              "fake-logical-port-id-01",
 					Name:            "fake-logical-port-name-01",
 					LogicalSwitchID: "fake-logical-switch-id-01",
-					Status:          1.0,
+					StatusDetail:    buildExpectedLogicalPortStatusDetail("UP"),
 				},
 			},
 		}, {
