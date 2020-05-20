@@ -12,9 +12,9 @@ import (
 	"github.com/vmware/go-vmware-nsxt/loadbalancer"
 )
 
-var loadBalancerPossibleStatus = [...]string{"UP", "DOWN", "ERROR", "NO_STANDBY", "DETACHED", "DISABLED", "UNKNOWN"}
-var loadBalancerPoolPossibleStatus = [...]string{"UP", "PARTIALLY_UP", "PRIMARY_DOWN", "DOWN", "DETACHED", "UNKNOWN"}
-var loadBalancerPoolMemberPossibleStatus = [...]string{"UP", "DOWN", "DISABLED", "GRACEFUL_DISABLED", "UNUSED"}
+var loadBalancerPossibleStatus = []string{"UP", "DOWN", "ERROR", "NO_STANDBY", "DETACHED", "DISABLED", "UNKNOWN"}
+var loadBalancerPoolPossibleStatus = []string{"UP", "PARTIALLY_UP", "PRIMARY_DOWN", "DOWN", "DETACHED", "UNKNOWN"}
+var loadBalancerPoolMemberPossibleStatus = []string{"UP", "DOWN", "DISABLED", "GRACEFUL_DISABLED", "UNUSED"}
 
 func init() {
 	registerCollector("load_balancer", createLoadBalancerCollectorFactory)
@@ -126,39 +126,18 @@ func (c *loadBalancerCollector) generateLoadBalancerStatusMetrics(loadBalancers 
 		loadBalancerStatusMetric := loadBalancerStatusMetric{
 			ID:           lbStatus.ServiceId,
 			Name:         lb.DisplayName,
-			StatusDetail: map[string]float64{},
-		}
-		for _, status := range loadBalancerPossibleStatus {
-			statusValue := 0.0
-			if status == strings.ToUpper(lbStatus.ServiceStatus) {
-				statusValue = 1.0
-			}
-			loadBalancerStatusMetric.StatusDetail[status] = statusValue
+			StatusDetail: c.constructStatusDetail(loadBalancerPossibleStatus, lbStatus.ServiceStatus),
 		}
 		for _, poolStatus := range lbStatus.Pools {
 			poolStatusMetric := loadBalancerPoolStatusMetric{
 				ID:           poolStatus.PoolId,
-				StatusDetail: map[string]float64{},
-			}
-			for _, status := range loadBalancerPoolPossibleStatus {
-				statusValue := 0.0
-				if status == strings.ToUpper(poolStatus.Status) {
-					statusValue = 1.0
-				}
-				poolStatusMetric.StatusDetail[status] = statusValue
+				StatusDetail: c.constructStatusDetail(loadBalancerPoolPossibleStatus, poolStatus.Status),
 			}
 			for _, memberStatus := range poolStatus.Members {
 				memberStatusMetric := loadBalancerPoolMemberStatusMetric{
 					IPAddress:    memberStatus.IPAddress,
 					Port:         memberStatus.Port,
-					StatusDetail: map[string]float64{},
-				}
-				for _, status := range loadBalancerPoolMemberPossibleStatus {
-					statusValue := 0.0
-					if status == strings.ToUpper(memberStatus.Status) {
-						statusValue = 1.0
-					}
-					memberStatusMetric.StatusDetail[status] = statusValue
+					StatusDetail: c.constructStatusDetail(loadBalancerPoolMemberPossibleStatus, memberStatus.Status),
 				}
 				poolStatusMetric.MembersStatus = append(poolStatusMetric.MembersStatus, memberStatusMetric)
 			}
@@ -167,4 +146,16 @@ func (c *loadBalancerCollector) generateLoadBalancerStatusMetrics(loadBalancers 
 		loadBalancerStatusMetrics = append(loadBalancerStatusMetrics, loadBalancerStatusMetric)
 	}
 	return
+}
+
+func (c *loadBalancerCollector) constructStatusDetail(possibleStatus []string, currentStatus string) map[string]float64 {
+	statusDetail := map[string]float64{}
+	for _, status := range possibleStatus {
+		statusValue := 0.0
+		if status == strings.ToUpper(currentStatus) {
+			statusValue = 1.0
+		}
+		statusDetail[status] = statusValue
+	}
+	return statusDetail
 }
