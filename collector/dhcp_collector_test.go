@@ -222,35 +222,29 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{
-					ID:         "fake-dhcp-server-id-01",
-					Name:       "fake-dhcp-server-name-01",
-					Status:     1.0,
-					StatusEnum: "UP",
+					ID:     "fake-dhcp-server-id-01",
+					Name:   "fake-dhcp-server-name-01",
+					Status: "UP",
 				}, {
-					ID:         "fake-dhcp-server-id-02",
-					Name:       "fake-dhcp-server-name-02",
-					Status:     0.0,
-					StatusEnum: "DOWN",
+					ID:     "fake-dhcp-server-id-02",
+					Name:   "fake-dhcp-server-name-02",
+					Status: "DOWN",
 				}, {
-					ID:         "fake-dhcp-server-id-03",
-					Name:       "fake-dhcp-server-name-03",
-					Status:     0.0,
-					StatusEnum: "ERROR",
+					ID:     "fake-dhcp-server-id-03",
+					Name:   "fake-dhcp-server-name-03",
+					Status: "ERROR",
 				}, {
-					ID:         "fake-dhcp-server-id-04",
-					Name:       "fake-dhcp-server-name-04",
-					Status:     0.0,
-					StatusEnum: "NO_STANDBY",
+					ID:     "fake-dhcp-server-id-04",
+					Name:   "fake-dhcp-server-name-04",
+					Status: "NO_STANDBY",
 				}, {
-					ID:         "fake-dhcp-server-id-05",
-					Name:       "fake-dhcp-server-name-05",
-					Status:     1.0,
-					StatusEnum: "UP",
+					ID:     "fake-dhcp-server-id-05",
+					Name:   "fake-dhcp-server-name-05",
+					Status: "UP",
 				}, {
-					ID:         "fake-dhcp-server-id-06",
-					Name:       "fake-dhcp-server-name-06",
-					Status:     0.0,
-					StatusEnum: "DOWN",
+					ID:     "fake-dhcp-server-id-06",
+					Name:   "fake-dhcp-server-name-06",
+					Status: "DOWN",
 				},
 			},
 		}, {
@@ -261,10 +255,9 @@ func TestDHCPCollector_GenerateDHCPStatusMetrics(t *testing.T) {
 			},
 			expectedMetrics: []dhcpStatusMetric{
 				{
-					ID:         "fake-dhcp-server-id-01",
-					Name:       "fake-dhcp-server-name-01",
-					Status:     1.0,
-					StatusEnum: "UP",
+					ID:     "fake-dhcp-server-id-01",
+					Name:   "fake-dhcp-server-name-01",
+					Status: "UP",
 				},
 			},
 		}, {
