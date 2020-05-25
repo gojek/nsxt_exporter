@@ -64,7 +64,7 @@ func (c *firewallCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *firewallCollector) Collect(ch chan<- prometheus.Metric) {
-	firewallSections, err := c.firewallClient.ListAllSections()
+	firewallSections, err := c.firewallClient.ListAllFirewallSections()
 	if err != nil {
 		level.Error(c.logger).Log("msg", "Unable to list firewall sections", "err", err)
 	}
@@ -78,7 +78,7 @@ func (c *firewallCollector) Collect(ch chan<- prometheus.Metric) {
 
 func (c *firewallCollector) generateFirewallStatisticMetrics(firewallSections []manager.FirewallSection) (firewallStatisticMetrics []firewallStatisticMetric) {
 	for _, sec := range firewallSections {
-		rules, err := c.firewallClient.GetAllRules(sec.Id)
+		rules, err := c.firewallClient.GetAllFirewallRules(sec.Id)
 		if err != nil {
 			level.Error(c.logger).Log("msg", "Unable to get firewall rules", "section", sec.Id, "err", err)
 			continue

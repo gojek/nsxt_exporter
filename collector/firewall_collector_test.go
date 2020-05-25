@@ -30,11 +30,11 @@ type mockFirewallResponse struct {
 	Error      error
 }
 
-func (c *mockFirewallClient) ListAllSections() ([]manager.FirewallSection, error) {
+func (c *mockFirewallClient) ListAllFirewallSections() ([]manager.FirewallSection, error) {
 	panic("unused function. Only used to satisfy FirewallClient interface")
 }
 
-func (c *mockFirewallClient) GetAllRules(sectionID string) ([]manager.FirewallRule, error) {
+func (c *mockFirewallClient) GetAllFirewallRules(sectionID string) ([]manager.FirewallRule, error) {
 	if c.firewallRuleListError != nil {
 		return nil, c.firewallRuleListError
 	}

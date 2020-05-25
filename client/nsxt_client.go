@@ -294,7 +294,7 @@ func (c *nsxtClient) GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.
 	return loadBalancerStatus, err
 }
 
-func (c *nsxtClient) ListAllSections() ([]manager.FirewallSection, error) {
+func (c *nsxtClient) ListAllFirewallSections() ([]manager.FirewallSection, error) {
 	var firewallSections []manager.FirewallSection
 	var cursor string
 	for {
@@ -313,7 +313,7 @@ func (c *nsxtClient) ListAllSections() ([]manager.FirewallSection, error) {
 	return firewallSections, nil
 }
 
-func (c *nsxtClient) GetAllRules(sectionID string) ([]manager.FirewallRule, error) {
+func (c *nsxtClient) GetAllFirewallRules(sectionID string) ([]manager.FirewallRule, error) {
 	var firewallRules []manager.FirewallRule
 	var cursor string
 	for {
