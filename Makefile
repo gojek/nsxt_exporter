@@ -8,7 +8,7 @@ GOOS?=$(shell $(GO) env GOHOSTOS)
 GOARCH?=$(shell $(GO) env GOHOSTARCH)
 
 DOCKER_IMAGE_NAME?=nsxt-exporter
-DOCKER_IMAGE_TAG?=$(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
+DOCKER_IMAGE_TAG?=$(shell git rev-parse --short HEAD)
 DOCKERFILE_PATH?=./Dockerfile
 DOCKERBUILD_CONTEXT?=./
 DOCKER_REPO?=cloudnativeid
@@ -40,7 +40,7 @@ fmt:
 .PHONY: docker $(BUILD_DOCKER_ARCHS)
 docker: $(BUILD_DOCKER_ARCHS)
 $(BUILD_DOCKER_ARCHS): docker-%:
-	docker build -t "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME)-linux-$*:$(DOCKER_IMAGE_TAG)" \
+	docker build -t "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" \
 		-f $(DOCKERFILE_PATH) \
 		--build-arg ARCH="$*" \
 		--build-arg OS="linux" \
@@ -49,9 +49,9 @@ $(BUILD_DOCKER_ARCHS): docker-%:
 .PHONY: docker-publish $(PUBLISH_DOCKER_ARCHS)
 docker-publish: $(PUBLISH_DOCKER_ARCHS)
 $(PUBLISH_DOCKER_ARCHS): docker-publish-%:
-	docker push "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME)-linux-$*:$(DOCKER_IMAGE_TAG)"
+	docker push "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)"
 
 .PHONY: docker-tag-latest $(TAG_DOCKER_ARCHS)
 docker-tag-latest: $(TAG_DOCKER_ARCHS)
 $(TAG_DOCKER_ARCHS): docker-tag-latest-%:
-	docker tag "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME)-linux-$*:$(DOCKER_IMAGE_TAG)" "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME)-linux-$*:latest"
+	docker tag "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):latest"
