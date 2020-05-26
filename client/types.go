@@ -69,6 +69,7 @@ type LogicalSwitchClient interface {
 type LoadBalancerClient interface {
 	ListAllLoadBalancers() ([]loadbalancer.LbService, error)
 	GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.LbServiceStatus, error)
+	GetLoadBalancerStatistic(loadBalancerID string) (loadbalancer.LbServiceStatistics, error)
 }
 
 // FirewallClient represents Firewall sub-API group of Services for NSXT-T Client
