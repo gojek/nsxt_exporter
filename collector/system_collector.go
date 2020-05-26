@@ -12,6 +12,7 @@ import (
 )
 
 var possibleSystemServiceStatus = [...]string{"RUNNING", "STOPPED"}
+var possibleNodeStatus = [...]string{"CONNECTED", "DISCONNECTED", "UNKNOWN"}
 
 func init() {
 	registerCollector("system", createSystemCollectorFactory)
@@ -36,10 +37,11 @@ type systemCollector struct {
 }
 
 type systemStatusMetric struct {
-	Name      string
-	IPAddress string
-	Type      string
-	Status    float64
+	Name         string
+	IPAddress    string
+	Type         string
+	Status       float64
+	StatusDetail map[string]float64
 
 	CPUCores                  float64
 	LoadAverageOneMinute      float64
@@ -55,8 +57,9 @@ type systemStatusMetric struct {
 }
 
 type controllerNodeStatusMetric struct {
-	IPAddress string
-	Status    float64
+	IPAddress    string
+	Status       float64
+	StatusDetail map[string]float64
 }
 
 type serviceStatusMetric struct {
@@ -78,8 +81,8 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 	)
 	clusterNodeStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "cluster_node", "status"),
-		"Status of NSX-T system cluster nodes UP/DOWN.",
-		[]string{"ip_address", "type"},
+		"Status of NSX-T system cluster nodes",
+		[]string{"ip_address", "type", "status"},
 		nil,
 	)
 	clusterNodeCPUCoresUse := prometheus.NewDesc(
@@ -177,29 +180,32 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 
 	controllerNodeStatusMetrics, nodeMetrics := sc.collectClusterNodeMetrics()
 	for _, nm := range nodeMetrics {
-		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
-		if nm.Type == "management" {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageOneMinute, nm.IPAddress, nm.Type, "1")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFiveMinutes, nm.IPAddress, nm.Type, "5")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFifteenMinutes, nm.IPAddress, nm.Type, "15")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryCached, prometheus.GaugeValue, nm.MemoryCached, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapUse, prometheus.GaugeValue, nm.SwapUse, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapTotal, prometheus.GaugeValue, nm.SwapTotal, nm.IPAddress, nm.Type)
+		nodeType := "management"
+		for status, value := range nm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, value, nm.IPAddress, nodeType, status)
+		}
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageOneMinute, nm.IPAddress, nodeType, "1")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFiveMinutes, nm.IPAddress, nodeType, "5")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFifteenMinutes, nm.IPAddress, nodeType, "15")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryCached, prometheus.GaugeValue, nm.MemoryCached, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapUse, prometheus.GaugeValue, nm.SwapUse, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapTotal, prometheus.GaugeValue, nm.SwapTotal, nm.IPAddress, nodeType)
 
-			for filesystem, diskUse := range nm.DiskUse {
-				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskUse, prometheus.GaugeValue, diskUse, nm.IPAddress, nm.Type, filesystem)
-			}
-			for filesystem, diskTotal := range nm.DiskTotal {
-				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nm.Type, filesystem)
-			}
+		for filesystem, diskUse := range nm.DiskUse {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskUse, prometheus.GaugeValue, diskUse, nm.IPAddress, nodeType, filesystem)
+		}
+		for filesystem, diskTotal := range nm.DiskTotal {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nodeType, filesystem)
 		}
 	}
 	for _, nm := range controllerNodeStatusMetrics {
 		nodeType := "controller"
-		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nodeType)
+		for status, value := range nm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, value, nm.IPAddress, nodeType, status)
+		}
 	}
 
 	serviceMetrics := sc.collectServiceStatusMetrics()
@@ -246,12 +252,17 @@ func (sc *systemCollector) collectClusterNodeMetrics() (controllerNodeStatusMetr
 func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (controllerNodeStatusMetrics []controllerNodeStatusMetric) {
 	for _, c := range controllerNodes {
 		controllerStatusMetric := controllerNodeStatusMetric{
-			IPAddress: c.RoleConfig.ControlPlaneListenAddr.IpAddress,
-			Status:    0.0,
+			IPAddress:    c.RoleConfig.ControlPlaneListenAddr.IpAddress,
+			StatusDetail: map[string]float64{},
+		}
+		for _, status := range possibleNodeStatus {
+			controllerStatusMetric.StatusDetail[status] = 0.0
 		}
 		if strings.ToUpper(c.NodeStatus.ControlClusterStatus.ControlClusterStatus) == "CONNECTED" &&
 			strings.ToUpper(c.NodeStatus.ControlClusterStatus.MgmtConnectionStatus.ConnectivityStatus) == "CONNECTED" {
-			controllerStatusMetric.Status = 1.0
+			controllerStatusMetric.StatusDetail["CONNECTED"] = 1.0
+		} else {
+			controllerStatusMetric.StatusDetail["DISCONNECTED"] = 1.0
 		}
 		controllerNodeStatusMetrics = append(controllerNodeStatusMetrics, controllerStatusMetric)
 	}
@@ -261,12 +272,15 @@ func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []admi
 func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
 	for _, m := range managementNodes {
 		managementNodeMetric := systemStatusMetric{
-			IPAddress: m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
-			Type:      "management",
-			Status:    0.0,
+			IPAddress:    m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
+			Type:         "management",
+			StatusDetail: map[string]float64{},
 		}
-		if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == "CONNECTED" {
-			managementNodeMetric.Status = 1.0
+		for _, possibleStatus := range possibleNodeStatus {
+			managementNodeMetric.StatusDetail[possibleStatus] = 0.0
+			if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == possibleStatus {
+				managementNodeMetric.StatusDetail[possibleStatus] = 1.0
+			}
 		}
 		if len(m.NodeStatusProperties) > 0 {
 			const latestDataIndex = 0

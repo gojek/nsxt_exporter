@@ -198,6 +198,16 @@ func buildExpectedServiceStatusDetail(nonZeroStatus string) map[string]float64 {
 	return statusDetails
 }
 
+func buildExpectedClusterNodeStatusDetail(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"CONNECTED":    0.0,
+		"DISCONNECTED": 0.0,
+		"UNKNOWN":      0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description     string
@@ -354,18 +364,18 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 			},
 			expectedControllerMetrics: []controllerNodeStatusMetric{
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    1.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("CONNECTED"),
 				}, {
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    1.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("CONNECTED"),
 				},
 			},
 			expectedMetrics: []systemStatusMetric{
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
-					Status:                    1.0,
+					StatusDetail:              buildExpectedClusterNodeStatusDetail("CONNECTED"),
 					CPUCores:                  fakeCPUCores,
 					LoadAverageOneMinute:      fakeLoadAverage,
 					LoadAverageFiveMinutes:    fakeLoadAverage,
@@ -385,7 +395,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
-					Status:                    1.0,
+					StatusDetail:              buildExpectedClusterNodeStatusDetail("CONNECTED"),
 					CPUCores:                  fakeCPUCores,
 					LoadAverageOneMinute:      fakeLoadAverage,
 					LoadAverageFiveMinutes:    fakeLoadAverage,
@@ -430,24 +440,24 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 			},
 			expectedControllerMetrics: []controllerNodeStatusMetric{
 				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 				}, {
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 				}, {
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 				}, {
-					IPAddress: fakeClusterNodeIPAddress,
-					Status:    0.0,
+					IPAddress:    fakeClusterNodeIPAddress,
+					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 				},
 			},
 			expectedMetrics: []systemStatusMetric{
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
-					Status:                    0.0,
+					StatusDetail:              buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 					CPUCores:                  fakeCPUCores,
 					LoadAverageOneMinute:      fakeLoadAverage,
 					LoadAverageFiveMinutes:    fakeLoadAverage,
@@ -467,7 +477,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
-					Status:                    0.0,
+					StatusDetail:              buildExpectedClusterNodeStatusDetail("UNKNOWN"),
 					CPUCores:                  fakeCPUCores,
 					LoadAverageOneMinute:      fakeLoadAverage,
 					LoadAverageFiveMinutes:    fakeLoadAverage,
