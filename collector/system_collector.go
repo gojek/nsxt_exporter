@@ -52,6 +52,11 @@ type systemStatusMetric struct {
 	DiskTotal                 map[string]float64
 }
 
+type serviceStatusMetric struct {
+	Name   string
+	Status float64
+}
+
 func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
 	nsxtClient := client.NewNSXTClient(apiClient, logger)
 	return newSystemCollector(nsxtClient, logger)
@@ -280,8 +285,8 @@ func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []admini
 	return
 }
 
-func (sc *systemCollector) collectServiceStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
-	var collectors []func() (systemStatusMetric, error)
+func (sc *systemCollector) collectServiceStatusMetrics() (serviceStatusMetrics []serviceStatusMetric) {
+	var collectors []func() (serviceStatusMetric, error)
 	collectors = append(collectors, sc.collectApplianceServiceMetric)
 	collectors = append(collectors, sc.collectMessageBusServiceMetric)
 	collectors = append(collectors, sc.collectNTPServiceMetric)
@@ -300,17 +305,17 @@ func (sc *systemCollector) collectServiceStatusMetrics() (systemStatusMetrics []
 			level.Error(sc.logger).Log("msg", "Unable to collect system service status", "name", m.Name, "error", err.Error())
 			continue
 		}
-		systemStatusMetrics = append(systemStatusMetrics, m)
+		serviceStatusMetrics = append(serviceStatusMetrics, m)
 	}
 	return
 }
 
-func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystemService func() (administration.NodeServiceStatusProperties, error)) (systemStatusMetric, error) {
+func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystemService func() (administration.NodeServiceStatusProperties, error)) (serviceStatusMetric, error) {
 	status, err := collectSystemService()
 	if err != nil {
-		return systemStatusMetric{}, err
+		return serviceStatusMetric{}, err
 	}
-	statusMetric := systemStatusMetric{
+	statusMetric := serviceStatusMetric{
 		Name:   name,
 		Status: 0.0,
 	}
@@ -320,50 +325,50 @@ func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystem
 	return statusMetric, nil
 }
 
-func (sc *systemCollector) collectApplianceServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectApplianceServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("appliance", sc.systemClient.ReadApplianceManagementServiceStatus)
 }
 
-func (sc *systemCollector) collectMessageBusServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectMessageBusServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("message_bus", sc.systemClient.ReadNSXMessageBusServiceStatus)
 }
 
-func (sc *systemCollector) collectNTPServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectNTPServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("ntp", sc.systemClient.ReadNTPServiceStatus)
 }
 
-func (sc *systemCollector) collectUpgradeAgentServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectUpgradeAgentServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("upgrade_agent", sc.systemClient.ReadNsxUpgradeAgentServiceStatus)
 }
 
-func (sc *systemCollector) collectProtonServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectProtonServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("proton", sc.systemClient.ReadProtonServiceStatus)
 }
 
-func (sc *systemCollector) collectProxyServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectProxyServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("proxy", sc.systemClient.ReadProxyServiceStatus)
 }
 
-func (sc *systemCollector) collectRabbitMQServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectRabbitMQServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("rabbitmq", sc.systemClient.ReadRabbitMQServiceStatus)
 }
 
-func (sc *systemCollector) collectRepositoryServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectRepositoryServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("repository", sc.systemClient.ReadRepositoryServiceStatus)
 }
 
-func (sc *systemCollector) collectSNMPServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSNMPServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("snmp", sc.systemClient.ReadSNMPServiceStatus)
 }
 
-func (sc *systemCollector) collectSSHServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSSHServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("ssh", sc.systemClient.ReadSSHServiceStatus)
 }
 
-func (sc *systemCollector) collectSearchServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSearchServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("search", sc.systemClient.ReadSearchServiceStatus)
 }
 
-func (sc *systemCollector) collectSyslogServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSyslogServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("syslog", sc.systemClient.ReadSyslogServiceStatus)
 }
