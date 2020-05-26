@@ -331,9 +331,10 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 
 func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 	testcases := []struct {
-		description     string
-		response        mockClusterNodeStatusResponse
-		expectedMetrics []systemStatusMetric
+		description               string
+		response                  mockClusterNodeStatusResponse
+		expectedControllerMetrics []controllerNodeStatusMetric
+		expectedMetrics           []systemStatusMetric
 	}{
 		{
 			description: "Should return system metrics for management nodes and up value for connected nodes",
@@ -351,17 +352,16 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				ManagementClusterStatus: []string{"CONNECTED", "ConNected"},
 				Error:                   nil,
 			},
+			expectedControllerMetrics: []controllerNodeStatusMetric{
+				{
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    1.0,
+				}, {
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    1.0,
+				},
+			},
 			expectedMetrics: []systemStatusMetric{
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    1.0,
-				},
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    1.0,
-				},
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
@@ -428,27 +428,22 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				ManagementClusterStatus: []string{"DISCONNECTED", "UNKNOWN"},
 				Error:                   nil,
 			},
+			expectedControllerMetrics: []controllerNodeStatusMetric{
+				{
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    0.0,
+				}, {
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    0.0,
+				}, {
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    0.0,
+				}, {
+					IPAddress: fakeClusterNodeIPAddress,
+					Status:    0.0,
+				},
+			},
 			expectedMetrics: []systemStatusMetric{
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    0.0,
-				},
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    0.0,
-				},
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    0.0,
-				},
-				{
-					IPAddress: fakeClusterNodeIPAddress,
-					Type:      "controller",
-					Status:    0.0,
-				},
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
@@ -512,7 +507,8 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 		}
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
-		nodeMetrics := systemCollector.collectClusterNodeMetrics()
+		controllerNodeMetrics, nodeMetrics := systemCollector.collectClusterNodeMetrics()
+		assert.ElementsMatch(t, tc.expectedControllerMetrics, controllerNodeMetrics, tc.description)
 		assert.ElementsMatch(t, tc.expectedMetrics, nodeMetrics, tc.description)
 	}
 }

@@ -54,6 +54,11 @@ type systemStatusMetric struct {
 	DiskTotal                 map[string]float64
 }
 
+type controllerNodeStatusMetric struct {
+	IPAddress string
+	Status    float64
+}
+
 type serviceStatusMetric struct {
 	Name         string
 	StatusDetail map[string]float64
@@ -170,7 +175,7 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, sm.Status)
 	}
 
-	nodeMetrics := sc.collectClusterNodeMetrics()
+	controllerNodeStatusMetrics, nodeMetrics := sc.collectClusterNodeMetrics()
 	for _, nm := range nodeMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
 		if nm.Type == "management" {
@@ -191,6 +196,10 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nm.Type, filesystem)
 			}
 		}
+	}
+	for _, nm := range controllerNodeStatusMetrics {
+		nodeType := "controller"
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nodeType)
 	}
 
 	serviceMetrics := sc.collectServiceStatusMetrics()
@@ -218,7 +227,7 @@ func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []
 	return
 }
 
-func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) collectClusterNodeMetrics() (controllerNodeStatusMetrics []controllerNodeStatusMetric, systemStatusMetrics []systemStatusMetric) {
 	clusterNodes, err := sc.systemClient.ReadClusterNodesAggregateStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster nodes status")
@@ -226,7 +235,7 @@ func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []sy
 	}
 
 	controllerStatusMetrics := sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
-	systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetrics...)
+	controllerNodeStatusMetrics = append(controllerNodeStatusMetrics, controllerStatusMetrics...)
 
 	managementNodeMetrics := sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
 	systemStatusMetrics = append(systemStatusMetrics, managementNodeMetrics...)
@@ -234,18 +243,17 @@ func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []sy
 	return
 }
 
-func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (controllerNodeStatusMetrics []controllerNodeStatusMetric) {
 	for _, c := range controllerNodes {
-		controllerStatusMetric := systemStatusMetric{
+		controllerStatusMetric := controllerNodeStatusMetric{
 			IPAddress: c.RoleConfig.ControlPlaneListenAddr.IpAddress,
-			Type:      "controller",
 			Status:    0.0,
 		}
 		if strings.ToUpper(c.NodeStatus.ControlClusterStatus.ControlClusterStatus) == "CONNECTED" &&
 			strings.ToUpper(c.NodeStatus.ControlClusterStatus.MgmtConnectionStatus.ConnectivityStatus) == "CONNECTED" {
 			controllerStatusMetric.Status = 1.0
 		}
-		systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetric)
+		controllerNodeStatusMetrics = append(controllerNodeStatusMetrics, controllerStatusMetric)
 	}
 	return
 }
