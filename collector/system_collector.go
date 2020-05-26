@@ -40,7 +40,7 @@ type clusterStatusMetric struct {
 	Status float64
 }
 
-type systemStatusMetric struct {
+type managementNodeMetric struct {
 	Name         string
 	IPAddress    string
 	Type         string
@@ -236,18 +236,15 @@ func (sc *systemCollector) collectClusterStatusMetrics() (clusterStatusMetrics [
 	return
 }
 
-func (sc *systemCollector) collectClusterNodeMetrics() (controllerNodeStatusMetrics []controllerNodeStatusMetric, systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) collectClusterNodeMetrics() (controllerNodeStatusMetrics []controllerNodeStatusMetric, managementNodeMetrics []managementNodeMetric) {
 	clusterNodes, err := sc.systemClient.ReadClusterNodesAggregateStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster nodes status")
 		return
 	}
 
-	controllerStatusMetrics := sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
-	controllerNodeStatusMetrics = append(controllerNodeStatusMetrics, controllerStatusMetrics...)
-
-	managementNodeMetrics := sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
-	systemStatusMetrics = append(systemStatusMetrics, managementNodeMetrics...)
+	controllerNodeStatusMetrics = sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
+	managementNodeMetrics = sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
 
 	return
 }
@@ -272,9 +269,9 @@ func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []admi
 	return
 }
 
-func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (managementNodeMetrics []managementNodeMetric) {
 	for _, m := range managementNodes {
-		managementNodeMetric := systemStatusMetric{
+		managementNodeMetric := managementNodeMetric{
 			IPAddress:    m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
 			Type:         "management",
 			StatusDetail: map[string]float64{},
@@ -309,7 +306,7 @@ func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []admini
 				managementNodeMetric.DiskTotal[disk.Mount] = float64(disk.Total)
 			}
 		}
-		systemStatusMetrics = append(systemStatusMetrics, managementNodeMetric)
+		managementNodeMetrics = append(managementNodeMetrics, managementNodeMetric)
 	}
 	return
 }

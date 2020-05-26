@@ -344,7 +344,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 		description               string
 		response                  mockClusterNodeStatusResponse
 		expectedControllerMetrics []controllerNodeStatusMetric
-		expectedMetrics           []systemStatusMetric
+		expectedMetrics           []managementNodeMetric
 	}{
 		{
 			description: "Should return system metrics for management nodes and up value for connected nodes",
@@ -371,7 +371,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 					StatusDetail: buildExpectedClusterNodeStatusDetail("CONNECTED"),
 				},
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []managementNodeMetric{
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
@@ -453,7 +453,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
 				},
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []managementNodeMetric{
 				{
 					IPAddress:                 fakeClusterNodeIPAddress,
 					Type:                      "management",
@@ -508,7 +508,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				ManagementClusterStatus: []string{"CONNECTED"},
 				Error:                   errors.New("error read cluster node status"),
 			},
-			expectedMetrics: []systemStatusMetric{},
+			expectedMetrics: []managementNodeMetric{},
 		},
 	}
 	for _, tc := range testcases {
