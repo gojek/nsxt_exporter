@@ -341,10 +341,10 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 
 func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 	testcases := []struct {
-		description                   string
-		response                      mockClusterNodeStatusResponse
-		expectedControllerMetrics     []controllerNodeStatusMetric
-		expectedManagementNodeMetrics []managementNodeMetric
+		description                         string
+		response                            mockClusterNodeStatusResponse
+		expectedControllerNodeStatusMetrics []controllerNodeStatusMetric
+		expectedManagementNodeMetrics       []managementNodeMetric
 	}{
 		{
 			description: "Should return system metrics for management nodes and up value for connected nodes",
@@ -362,7 +362,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				ManagementClusterStatus: []string{"CONNECTED", "ConNected"},
 				Error:                   nil,
 			},
-			expectedControllerMetrics: []controllerNodeStatusMetric{
+			expectedControllerNodeStatusMetrics: []controllerNodeStatusMetric{
 				{
 					IPAddress:    fakeClusterNodeIPAddress,
 					StatusDetail: buildExpectedClusterNodeStatusDetail("CONNECTED"),
@@ -436,7 +436,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 				ManagementClusterStatus: []string{"DISCONNECTED", "UNKNOWN"},
 				Error:                   nil,
 			},
-			expectedControllerMetrics: []controllerNodeStatusMetric{
+			expectedControllerNodeStatusMetrics: []controllerNodeStatusMetric{
 				{
 					IPAddress:    fakeClusterNodeIPAddress,
 					StatusDetail: buildExpectedClusterNodeStatusDetail("DISCONNECTED"),
@@ -514,7 +514,7 @@ func TestSystemCollector_CollectClusterNodeMetrics(t *testing.T) {
 		logger := log.NewNopLogger()
 		systemCollector := newSystemCollector(mockSystemClient, logger)
 		controllerNodeMetrics, nodeMetrics := systemCollector.collectClusterNodeMetrics()
-		assert.ElementsMatch(t, tc.expectedControllerMetrics, controllerNodeMetrics, tc.description)
+		assert.ElementsMatch(t, tc.expectedControllerNodeStatusMetrics, controllerNodeMetrics, tc.description)
 		assert.ElementsMatch(t, tc.expectedManagementNodeMetrics, nodeMetrics, tc.description)
 	}
 }
