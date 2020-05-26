@@ -189,6 +189,15 @@ func (c *mockSystemClient) ReadSyslogServiceStatus() (administration.NodeService
 	return c.buildServiceStatusResponse()
 }
 
+func buildExpectedServiceStatusDetail(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"RUNNING": 0.0,
+		"STOPPED": 0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description     string
@@ -517,17 +526,17 @@ func TestSystemCollector_CollectApplianceServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when appliance service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "appliance", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "appliance", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when appliance service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "appliance", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "appliance", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when appliance service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "appliance", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "appliance", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading appliance service state",
@@ -558,17 +567,17 @@ func TestSystemCollector_CollectMessageBusServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when message bus service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "message_bus", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "message_bus", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when message bus service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "message_bus", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "message_bus", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when message bus service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "message_bus", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "message_bus", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading message bus service state",
@@ -599,17 +608,17 @@ func TestSystemCollector_CollectNTPServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when ntp service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "ntp", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "ntp", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when ntp service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "ntp", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "ntp", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when ntp service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "ntp", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "ntp", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading ntp service state",
@@ -640,17 +649,17 @@ func TestSystemCollector_CollectUpgradeServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when upgrade agent service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when upgrade agent service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when upgrade agent service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "upgrade_agent", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading upgrade agent service state",
@@ -681,17 +690,17 @@ func TestSystemCollector_CollectProtonServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when proton service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "proton", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "proton", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when proton service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "proton", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "proton", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when proton service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "proton", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "proton", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading proton service state",
@@ -722,17 +731,17 @@ func TestSystemCollector_CollectProxyServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when proxy service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "proxy", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "proxy", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when proxy service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "proxy", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "proxy", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when proxy service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "proxy", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "proxy", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading proxy service state",
@@ -763,17 +772,17 @@ func TestSystemCollector_CollectRabbitMQServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when rabbitmq service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "rabbitmq", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "rabbitmq", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when rabbitmq service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "rabbitmq", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "rabbitmq", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when rabbitmq service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "rabbitmq", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "rabbitmq", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading rabbitmq service state",
@@ -804,17 +813,17 @@ func TestSystemCollector_CollectRepositoryServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when repository service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "repository", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "repository", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when repository service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "repository", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "repository", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when repository service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "repository", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "repository", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading repository service state",
@@ -845,17 +854,17 @@ func TestSystemCollector_CollectSNMPServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when snmp service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "snmp", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "snmp", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when snmp service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "snmp", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "snmp", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when snmp service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "snmp", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "snmp", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading snmp service state",
@@ -886,17 +895,17 @@ func TestSystemCollector_CollectSSHServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when ssh service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "ssh", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "ssh", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when ssh service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "ssh", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "ssh", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when ssh service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "ssh", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "ssh", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading ssh service state",
@@ -927,17 +936,17 @@ func TestSystemCollector_CollectSearchServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when search service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "search", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "search", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when search service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "search", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "search", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when search service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "search", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "search", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading search service state",
@@ -968,17 +977,17 @@ func TestSystemCollector_CollectSyslogServiceMetric(t *testing.T) {
 		{
 			description:    "Should return up value when syslog service is running",
 			response:       mockClusterServiceStatusResponse{"RUNNING", nil},
-			expectedMetric: serviceStatusMetric{Name: "syslog", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "syslog", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return up value when syslog service is running with mixed cases",
 			response:       mockClusterServiceStatusResponse{"Running", nil},
-			expectedMetric: serviceStatusMetric{Name: "syslog", Status: 1.0},
+			expectedMetric: serviceStatusMetric{Name: "syslog", StatusDetail: buildExpectedServiceStatusDetail("RUNNING")},
 		},
 		{
 			description:    "Should return down value when syslog service is not running",
 			response:       mockClusterServiceStatusResponse{"STOPPED", nil},
-			expectedMetric: serviceStatusMetric{Name: "syslog", Status: 0.0},
+			expectedMetric: serviceStatusMetric{Name: "syslog", StatusDetail: buildExpectedServiceStatusDetail("STOPPED")},
 		},
 		{
 			description:    "Should return empty when failed reading syslog service state",

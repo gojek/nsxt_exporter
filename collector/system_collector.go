@@ -11,6 +11,8 @@ import (
 	"github.com/vmware/go-vmware-nsxt/administration"
 )
 
+var possibleSystemServiceStatus = [...]string{"RUNNING", "STOPPED"}
+
 func init() {
 	registerCollector("system", createSystemCollectorFactory)
 }
@@ -53,8 +55,8 @@ type systemStatusMetric struct {
 }
 
 type serviceStatusMetric struct {
-	Name   string
-	Status float64
+	Name         string
+	StatusDetail map[string]float64
 }
 
 func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -131,8 +133,8 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 	)
 	systemServiceStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "system_service", "status"),
-		"Status of NSX-T system service UP/DOWN.",
-		[]string{"name"},
+		"Status of NSX-T system service",
+		[]string{"name", "status"},
 		nil,
 	)
 	return &systemCollector{
@@ -193,7 +195,9 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 
 	serviceMetrics := sc.collectServiceStatusMetrics()
 	for _, svm := range serviceMetrics {
-		ch <- prometheus.MustNewConstMetric(sc.systemServiceStatus, prometheus.GaugeValue, svm.Status, svm.Name)
+		for status, value := range svm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.systemServiceStatus, prometheus.GaugeValue, value, svm.Name, status)
+		}
 	}
 }
 
@@ -316,12 +320,16 @@ func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystem
 		return serviceStatusMetric{}, err
 	}
 	statusMetric := serviceStatusMetric{
-		Name:   name,
-		Status: 0.0,
+		Name: name,
 	}
-	if strings.ToUpper(status.RuntimeState) == "RUNNING" {
-		statusMetric.Status = 1.0
+	statusDetail := map[string]float64{}
+	for _, possibleStatus := range possibleSystemServiceStatus {
+		statusDetail[possibleStatus] = 0.0
+		if strings.ToUpper(status.RuntimeState) == possibleStatus {
+			statusDetail[possibleStatus] = 1.0
+		}
 	}
+	statusMetric.StatusDetail = statusDetail
 	return statusMetric, nil
 }
 
