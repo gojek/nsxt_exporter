@@ -50,7 +50,7 @@ you can enable it using the `--nsxt.insecure=false` flag:
 To run the nsx-t exporter as a Docker container, run:
 
 ```bash
-docker run -p 9732:9732 cloudnativeid/nsxt-exporter-linux-amd64:latest --nsxt.host localhost --nsxt.username user --nsxt.password password
+docker run -p 9744:9744 cloudnativeid/nsxt-exporter-linux-amd64:latest --nsxt.host localhost --nsxt.username user --nsxt.password password
 ```
 
 ### Building

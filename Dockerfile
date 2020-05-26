@@ -6,6 +6,6 @@ ARG ARCH="amd64"
 ARG OS="linux"
 COPY .build/${OS}-${ARCH}/nsxt_exporter /bin/nsxt_exporter
 
-EXPOSE      9732
+EXPOSE      9744
 USER        nobody
 ENTRYPOINT  [ "/bin/nsxt_exporter" ]

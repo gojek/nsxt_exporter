@@ -15,7 +15,7 @@ const (
 	fakeLoadBalancerName           = "fake-load-balancer-name"
 	fakeLoadBalancerPoolID         = "fake-load-balancer-pool-id"
 	fakeLoadbalancerPoolMemberIP   = "127.0.0.1"
-	fakeLoadbalancerPoolMemberPort = "9732"
+	fakeLoadbalancerPoolMemberPort = "9744"
 )
 
 type mockLoadBalancerClient struct {
