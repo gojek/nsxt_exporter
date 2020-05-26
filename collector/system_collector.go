@@ -60,7 +60,6 @@ type managementNodeMetric struct {
 
 type controllerNodeStatusMetric struct {
 	IPAddress    string
-	Status       float64
 	StatusDetail map[string]float64
 }
 
