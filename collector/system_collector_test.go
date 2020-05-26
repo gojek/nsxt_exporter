@@ -212,7 +212,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 	testcases := []struct {
 		description     string
 		response        mockClusterStatusResponse
-		expectedMetrics []systemStatusMetric
+		expectedMetrics []clusterStatusMetric
 	}{
 		{
 			description: "Should return up value when both controller and management stable",
@@ -221,7 +221,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "STABLE",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 1.0,
 				},
@@ -234,7 +234,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "sTaBLe",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 1.0,
 				},
@@ -247,7 +247,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "STABLE",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -260,7 +260,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "UNSTABLE",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -273,7 +273,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "UNSTABLE",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -286,7 +286,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "DEGRADED",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -299,7 +299,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "UNKNOWN",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -312,7 +312,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "NO_CONTROLLERS",
 				Error:            nil,
 			},
-			expectedMetrics: []systemStatusMetric{
+			expectedMetrics: []clusterStatusMetric{
 				{
 					Status: 0.0,
 				},
@@ -325,7 +325,7 @@ func TestSystemCollector_CollectClusterStatusMetrics(t *testing.T) {
 				ManagementStatus: "STABLE",
 				Error:            errors.New("error read cluster status"),
 			},
-			expectedMetrics: []systemStatusMetric{},
+			expectedMetrics: []clusterStatusMetric{},
 		},
 	}
 	for _, tc := range testcases {

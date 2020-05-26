@@ -36,11 +36,14 @@ type systemCollector struct {
 	systemServiceStatus      *prometheus.Desc
 }
 
+type clusterStatusMetric struct {
+	Status float64
+}
+
 type systemStatusMetric struct {
 	Name         string
 	IPAddress    string
 	Type         string
-	Status       float64
 	StatusDetail map[string]float64
 
 	CPUCores                  float64
@@ -173,8 +176,8 @@ func (sc *systemCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
-	statusMetrics := sc.collectClusterStatusMetrics()
-	for _, sm := range statusMetrics {
+	clusterStatusMetrics := sc.collectClusterStatusMetrics()
+	for _, sm := range clusterStatusMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, sm.Status)
 	}
 
@@ -216,20 +219,20 @@ func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) collectClusterStatusMetrics() (clusterStatusMetrics []clusterStatusMetric) {
 	clusterStatus, err := sc.systemClient.ReadClusterStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster status")
 		return
 	}
-	systemStatusMetric := systemStatusMetric{
+	clusterStatusMetric := clusterStatusMetric{
 		Status: 0.0,
 	}
 	if strings.ToUpper(clusterStatus.ControlClusterStatus.Status) == "STABLE" &&
 		strings.ToUpper(clusterStatus.MgmtClusterStatus.Status) == "STABLE" {
-		systemStatusMetric.Status = 1.0
+		clusterStatusMetric.Status = 1.0
 	}
-	systemStatusMetrics = append(systemStatusMetrics, systemStatusMetric)
+	clusterStatusMetrics = append(clusterStatusMetrics, clusterStatusMetric)
 	return
 }
 
