@@ -43,7 +43,6 @@ type clusterStatusMetric struct {
 type managementNodeMetric struct {
 	Name         string
 	IPAddress    string
-	Type         string
 	StatusDetail map[string]float64
 
 	CPUCores                  float64
@@ -273,7 +272,6 @@ func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []admini
 	for _, m := range managementNodes {
 		managementNodeMetric := managementNodeMetric{
 			IPAddress:    m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
-			Type:         "management",
 			StatusDetail: map[string]float64{},
 		}
 		for _, possibleStatus := range possibleNodeStatus {
