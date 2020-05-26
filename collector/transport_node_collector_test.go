@@ -57,6 +57,17 @@ func (c *transportNodeClientMock) ListAllEdgeClusters() ([]manager.EdgeCluster, 
 	return c.edgeClustersResponse, c.edgeClustersError
 }
 
+func buildExpectedTransportNodeStatusDetails(nonZeroStatus string) map[string]float64 {
+	statusDetails := map[string]float64{
+		"UP":       0.0,
+		"DOWN":     0.0,
+		"DEGRADED": 0.0,
+		"UNKNOWN":  0.0,
+	}
+	statusDetails[nonZeroStatus] = 1.0
+	return statusDetails
+}
+
 func TestTransportNodeCollector_GenerateEdgeClusterMemberships(t *testing.T) {
 	testcases := []struct {
 		description          string
@@ -167,6 +178,26 @@ func TestTransportNodeCollector_GenerateTransportNodeMetrics(t *testing.T) {
 							TransportZoneId: fakeTransportZoneID("03"),
 						},
 					},
+				}, {
+					Id:          fakeTransportNodeID("03"),
+					DisplayName: fakeTransportNodeName("03"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("03"),
+						}, {
+							TransportZoneId: fakeTransportZoneID("04"),
+						},
+					},
+				}, {
+					Id:          fakeTransportNodeID("04"),
+					DisplayName: fakeTransportNodeName("04"),
+					TransportZoneEndpoints: []manager.TransportZoneEndPoint{
+						{
+							TransportZoneId: fakeTransportZoneID("04"),
+						}, {
+							TransportZoneId: fakeTransportZoneID("05"),
+						},
+					},
 				},
 			},
 			edgeClusterMemberships: []edgeClusterMembership{
@@ -183,21 +214,39 @@ func TestTransportNodeCollector_GenerateTransportNodeMetrics(t *testing.T) {
 				}, {
 					ID:     fakeTransportNodeID("02"),
 					Status: "DOWN",
+				}, {
+					ID:     fakeTransportNodeID("03"),
+					Status: "DEGRADED",
+				}, {
+					ID:     fakeTransportNodeID("04"),
+					Status: "UNKNOWN",
 				},
 			},
 			expectedMetrics: []transportNodeMetric{
 				{
 					ID:               fakeTransportNodeID("01"),
 					Name:             fakeTransportNodeName("01"),
-					Status:           1,
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("UP"),
 					Type:             "edge",
 					TransportZoneIDs: []string{fakeTransportZoneID("01")},
 				}, {
 					ID:               fakeTransportNodeID("02"),
 					Name:             fakeTransportNodeName("02"),
-					Status:           0,
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("DOWN"),
 					Type:             "host",
 					TransportZoneIDs: []string{fakeTransportZoneID("02"), fakeTransportZoneID("03")},
+				}, {
+					ID:               fakeTransportNodeID("03"),
+					Name:             fakeTransportNodeName("03"),
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("DEGRADED"),
+					Type:             "host",
+					TransportZoneIDs: []string{fakeTransportZoneID("03"), fakeTransportZoneID("04")},
+				}, {
+					ID:               fakeTransportNodeID("04"),
+					Name:             fakeTransportNodeName("04"),
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("UNKNOWN"),
+					Type:             "host",
+					TransportZoneIDs: []string{fakeTransportZoneID("04"), fakeTransportZoneID("05")},
 				},
 			},
 		}, {
@@ -244,7 +293,7 @@ func TestTransportNodeCollector_GenerateTransportNodeMetrics(t *testing.T) {
 				{
 					ID:               fakeTransportNodeID("01"),
 					Name:             fakeTransportNodeName("01"),
-					Status:           1,
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("UP"),
 					Type:             "edge",
 					TransportZoneIDs: []string{fakeTransportZoneID("01")},
 				},
@@ -286,13 +335,13 @@ func TestTransportNodeCollector_GenerateTransportNodeMetrics(t *testing.T) {
 				{
 					ID:               fakeTransportNodeID("01"),
 					Name:             fakeTransportNodeName("01"),
-					Status:           1,
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("UP"),
 					Type:             "",
 					TransportZoneIDs: []string{fakeTransportZoneID("01")},
 				}, {
 					ID:               fakeTransportNodeID("02"),
 					Name:             fakeTransportNodeName("02"),
-					Status:           0,
+					StatusDetail:     buildExpectedTransportNodeStatusDetails("DOWN"),
 					Type:             "",
 					TransportZoneIDs: []string{fakeTransportZoneID("02"), fakeTransportZoneID("03")},
 				},

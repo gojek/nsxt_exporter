@@ -13,6 +13,8 @@ import (
 	"github.com/vmware/go-vmware-nsxt/manager"
 )
 
+var transportNodePossibleStatus = [...]string{"UP", "DOWN", "DEGRADED", "UNKNOWN"}
+
 func init() {
 	registerCollector("transport_node", createTransportNodeCollectorFactory)
 }
@@ -34,7 +36,7 @@ type transportNodeCollector struct {
 type transportNodeMetric struct {
 	ID               string
 	Name             string
-	Status           float64
+	StatusDetail     map[string]float64
 	Type             string
 	TransportZoneIDs []string
 }
@@ -47,8 +49,8 @@ func createTransportNodeCollectorFactory(apiClient *nsxt.APIClient, logger log.L
 func newTransportNodeCollector(transportNodeClient client.TransportNodeClient, logger log.Logger) *transportNodeCollector {
 	transportNodeStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "transport_node", "status"),
-		"Status of Transport Node UP/DOWN",
-		[]string{"id", "name", "type", "transport_zone_id"},
+		"Status of Transport Node",
+		[]string{"id", "name", "type", "transport_zone_id", "status"},
 		nil,
 	)
 	edgeClusterMembership := prometheus.NewDesc(
@@ -89,7 +91,9 @@ func (c *transportNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	transportNodeMetrics := c.generateTransportNodeMetrics(transportNodes, edgeClusterMemberships)
 	for _, tnMetric := range transportNodeMetrics {
 		for _, tzID := range tnMetric.TransportZoneIDs {
-			ch <- prometheus.MustNewConstMetric(c.transportNodeStatus, prometheus.GaugeValue, tnMetric.Status, tnMetric.ID, tnMetric.Name, tnMetric.Type, tzID)
+			for status, value := range tnMetric.StatusDetail {
+				ch <- prometheus.MustNewConstMetric(c.transportNodeStatus, prometheus.GaugeValue, value, tnMetric.ID, tnMetric.Name, tnMetric.Type, tzID, status)
+			}
 		}
 	}
 }
@@ -112,11 +116,13 @@ func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []m
 			level.Error(c.logger).Log("msg", "Unable to get transport node status", "id", transportNode.Id, "err", err)
 			continue
 		}
-		var status float64
-		if strings.ToUpper(transportNodeStatus.Status) == "UP" {
-			status = 1
-		} else {
-			status = 0
+		statusDetail := map[string]float64{}
+		for _, status := range transportNodePossibleStatus {
+			statusValue := 0.0
+			if status == strings.ToUpper(transportNodeStatus.Status) {
+				statusValue = 1.0
+			}
+			statusDetail[status] = statusValue
 		}
 
 		var transportNodeType string
@@ -136,9 +142,9 @@ func (c *transportNodeCollector) generateTransportNodeMetrics(transportNodes []m
 		transportNodeMetric := transportNodeMetric{
 			ID:               transportNode.Id,
 			Name:             transportNode.DisplayName,
-			Status:           status,
 			Type:             transportNodeType,
 			TransportZoneIDs: transportZoneIDs,
+			StatusDetail:     statusDetail,
 		}
 		transportNodeMetrics = append(transportNodeMetrics, transportNodeMetric)
 	}
