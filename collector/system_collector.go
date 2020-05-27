@@ -11,6 +11,9 @@ import (
 	"github.com/vmware/go-vmware-nsxt/administration"
 )
 
+var possibleSystemServiceStatus = [...]string{"RUNNING", "STOPPED"}
+var possibleNodeStatus = [...]string{"CONNECTED", "DISCONNECTED", "UNKNOWN"}
+
 func init() {
 	registerCollector("system", createSystemCollectorFactory)
 }
@@ -33,11 +36,14 @@ type systemCollector struct {
 	systemServiceStatus      *prometheus.Desc
 }
 
-type systemStatusMetric struct {
-	Name      string
-	IPAddress string
-	Type      string
-	Status    float64
+type clusterStatusMetric struct {
+	Status float64
+}
+
+type managementNodeMetric struct {
+	Name         string
+	IPAddress    string
+	StatusDetail map[string]float64
 
 	CPUCores                  float64
 	LoadAverageOneMinute      float64
@@ -50,6 +56,16 @@ type systemStatusMetric struct {
 	SwapTotal                 float64
 	DiskUse                   map[string]float64
 	DiskTotal                 map[string]float64
+}
+
+type controllerNodeStatusMetric struct {
+	IPAddress    string
+	StatusDetail map[string]float64
+}
+
+type serviceStatusMetric struct {
+	Name         string
+	StatusDetail map[string]float64
 }
 
 func createSystemCollectorFactory(apiClient *nsxt.APIClient, logger log.Logger) prometheus.Collector {
@@ -66,8 +82,8 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 	)
 	clusterNodeStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "cluster_node", "status"),
-		"Status of NSX-T system cluster nodes UP/DOWN.",
-		[]string{"ip_address", "type"},
+		"Status of NSX-T system cluster nodes",
+		[]string{"ip_address", "type", "status"},
 		nil,
 	)
 	clusterNodeCPUCoresUse := prometheus.NewDesc(
@@ -126,8 +142,8 @@ func newSystemCollector(systemClient client.SystemClient, logger log.Logger) *sy
 	)
 	systemServiceStatus := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "system_service", "status"),
-		"Status of NSX-T system service UP/DOWN.",
-		[]string{"name"},
+		"Status of NSX-T system service",
+		[]string{"name", "status"},
 		nil,
 	)
 	return &systemCollector{
@@ -158,98 +174,110 @@ func (sc *systemCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (sc *systemCollector) Collect(ch chan<- prometheus.Metric) {
-	statusMetrics := sc.collectClusterStatusMetrics()
-	for _, sm := range statusMetrics {
+	clusterStatusMetrics := sc.collectClusterStatusMetrics()
+	for _, sm := range clusterStatusMetrics {
 		ch <- prometheus.MustNewConstMetric(sc.clusterStatus, prometheus.GaugeValue, sm.Status)
 	}
 
-	nodeMetrics := sc.collectClusterNodeMetrics()
+	controllerNodeStatusMetrics, nodeMetrics := sc.collectClusterNodeMetrics()
 	for _, nm := range nodeMetrics {
-		ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, nm.Status, nm.IPAddress, nm.Type)
-		if nm.Type == "management" {
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageOneMinute, nm.IPAddress, nm.Type, "1")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFiveMinutes, nm.IPAddress, nm.Type, "5")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFifteenMinutes, nm.IPAddress, nm.Type, "15")
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryCached, prometheus.GaugeValue, nm.MemoryCached, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapUse, prometheus.GaugeValue, nm.SwapUse, nm.IPAddress, nm.Type)
-			ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapTotal, prometheus.GaugeValue, nm.SwapTotal, nm.IPAddress, nm.Type)
+		nodeType := "management"
+		for status, value := range nm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, value, nm.IPAddress, nodeType, status)
+		}
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageOneMinute, nm.IPAddress, nodeType, "1")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFiveMinutes, nm.IPAddress, nodeType, "5")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresUse, prometheus.GaugeValue, nm.LoadAverageFifteenMinutes, nm.IPAddress, nodeType, "15")
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeCPUCoresTotal, prometheus.GaugeValue, nm.CPUCores, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryUse, prometheus.GaugeValue, nm.MemoryUse, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryTotal, prometheus.GaugeValue, nm.MemoryTotal, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeMemoryCached, prometheus.GaugeValue, nm.MemoryCached, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapUse, prometheus.GaugeValue, nm.SwapUse, nm.IPAddress, nodeType)
+		ch <- prometheus.MustNewConstMetric(sc.clusterNodeSwapTotal, prometheus.GaugeValue, nm.SwapTotal, nm.IPAddress, nodeType)
 
-			for filesystem, diskUse := range nm.DiskUse {
-				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskUse, prometheus.GaugeValue, diskUse, nm.IPAddress, nm.Type, filesystem)
-			}
-			for filesystem, diskTotal := range nm.DiskTotal {
-				ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nm.Type, filesystem)
-			}
+		for filesystem, diskUse := range nm.DiskUse {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskUse, prometheus.GaugeValue, diskUse, nm.IPAddress, nodeType, filesystem)
+		}
+		for filesystem, diskTotal := range nm.DiskTotal {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeDiskTotal, prometheus.GaugeValue, diskTotal, nm.IPAddress, nodeType, filesystem)
+		}
+	}
+	for _, nm := range controllerNodeStatusMetrics {
+		nodeType := "controller"
+		for status, value := range nm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.clusterNodeStatus, prometheus.GaugeValue, value, nm.IPAddress, nodeType, status)
 		}
 	}
 
 	serviceMetrics := sc.collectServiceStatusMetrics()
 	for _, svm := range serviceMetrics {
-		ch <- prometheus.MustNewConstMetric(sc.systemServiceStatus, prometheus.GaugeValue, svm.Status, svm.Name)
+		for status, value := range svm.StatusDetail {
+			ch <- prometheus.MustNewConstMetric(sc.systemServiceStatus, prometheus.GaugeValue, value, svm.Name, status)
+		}
 	}
 }
 
-func (sc *systemCollector) collectClusterStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) collectClusterStatusMetrics() (clusterStatusMetrics []clusterStatusMetric) {
 	clusterStatus, err := sc.systemClient.ReadClusterStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster status")
 		return
 	}
-	systemStatusMetric := systemStatusMetric{
+	clusterStatusMetric := clusterStatusMetric{
 		Status: 0.0,
 	}
 	if strings.ToUpper(clusterStatus.ControlClusterStatus.Status) == "STABLE" &&
 		strings.ToUpper(clusterStatus.MgmtClusterStatus.Status) == "STABLE" {
-		systemStatusMetric.Status = 1.0
+		clusterStatusMetric.Status = 1.0
 	}
-	systemStatusMetrics = append(systemStatusMetrics, systemStatusMetric)
+	clusterStatusMetrics = append(clusterStatusMetrics, clusterStatusMetric)
 	return
 }
 
-func (sc *systemCollector) collectClusterNodeMetrics() (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) collectClusterNodeMetrics() (controllerNodeStatusMetrics []controllerNodeStatusMetric, managementNodeMetrics []managementNodeMetric) {
 	clusterNodes, err := sc.systemClient.ReadClusterNodesAggregateStatus()
 	if err != nil {
 		level.Error(sc.logger).Log("msg", "Unable to collect cluster nodes status")
 		return
 	}
 
-	controllerStatusMetrics := sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
-	systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetrics...)
-
-	managementNodeMetrics := sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
-	systemStatusMetrics = append(systemStatusMetrics, managementNodeMetrics...)
+	controllerNodeStatusMetrics = sc.extractControllerStatusMetrics(clusterNodes.ControllerCluster)
+	managementNodeMetrics = sc.extractManagementNodeMetrics(clusterNodes.ManagementCluster)
 
 	return
 }
 
-func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) extractControllerStatusMetrics(controllerNodes []administration.ControllerNodeAggregateInfo) (controllerNodeStatusMetrics []controllerNodeStatusMetric) {
 	for _, c := range controllerNodes {
-		controllerStatusMetric := systemStatusMetric{
-			IPAddress: c.RoleConfig.ControlPlaneListenAddr.IpAddress,
-			Type:      "controller",
-			Status:    0.0,
+		controllerStatusMetric := controllerNodeStatusMetric{
+			IPAddress:    c.RoleConfig.ControlPlaneListenAddr.IpAddress,
+			StatusDetail: map[string]float64{},
+		}
+		for _, status := range possibleNodeStatus {
+			controllerStatusMetric.StatusDetail[status] = 0.0
 		}
 		if strings.ToUpper(c.NodeStatus.ControlClusterStatus.ControlClusterStatus) == "CONNECTED" &&
 			strings.ToUpper(c.NodeStatus.ControlClusterStatus.MgmtConnectionStatus.ConnectivityStatus) == "CONNECTED" {
-			controllerStatusMetric.Status = 1.0
+			controllerStatusMetric.StatusDetail["CONNECTED"] = 1.0
+		} else {
+			controllerStatusMetric.StatusDetail["DISCONNECTED"] = 1.0
 		}
-		systemStatusMetrics = append(systemStatusMetrics, controllerStatusMetric)
+		controllerNodeStatusMetrics = append(controllerNodeStatusMetrics, controllerStatusMetric)
 	}
 	return
 }
 
-func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (systemStatusMetrics []systemStatusMetric) {
+func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []administration.ManagementNodeAggregateInfo) (managementNodeMetrics []managementNodeMetric) {
 	for _, m := range managementNodes {
-		managementNodeMetric := systemStatusMetric{
-			IPAddress: m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
-			Type:      "management",
-			Status:    0.0,
+		managementNodeMetric := managementNodeMetric{
+			IPAddress:    m.RoleConfig.MgmtPlaneListenAddr.IpAddress,
+			StatusDetail: map[string]float64{},
 		}
-		if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == "CONNECTED" {
-			managementNodeMetric.Status = 1.0
+		for _, possibleStatus := range possibleNodeStatus {
+			managementNodeMetric.StatusDetail[possibleStatus] = 0.0
+			if strings.ToUpper(m.NodeStatus.MgmtClusterStatus.MgmtClusterStatus) == possibleStatus {
+				managementNodeMetric.StatusDetail[possibleStatus] = 1.0
+			}
 		}
 		if len(m.NodeStatusProperties) > 0 {
 			const latestDataIndex = 0
@@ -275,13 +303,13 @@ func (sc *systemCollector) extractManagementNodeMetrics(managementNodes []admini
 				managementNodeMetric.DiskTotal[disk.Mount] = float64(disk.Total)
 			}
 		}
-		systemStatusMetrics = append(systemStatusMetrics, managementNodeMetric)
+		managementNodeMetrics = append(managementNodeMetrics, managementNodeMetric)
 	}
 	return
 }
 
-func (sc *systemCollector) collectServiceStatusMetrics() (systemStatusMetrics []systemStatusMetric) {
-	var collectors []func() (systemStatusMetric, error)
+func (sc *systemCollector) collectServiceStatusMetrics() (serviceStatusMetrics []serviceStatusMetric) {
+	var collectors []func() (serviceStatusMetric, error)
 	collectors = append(collectors, sc.collectApplianceServiceMetric)
 	collectors = append(collectors, sc.collectMessageBusServiceMetric)
 	collectors = append(collectors, sc.collectNTPServiceMetric)
@@ -300,70 +328,74 @@ func (sc *systemCollector) collectServiceStatusMetrics() (systemStatusMetrics []
 			level.Error(sc.logger).Log("msg", "Unable to collect system service status", "name", m.Name, "error", err.Error())
 			continue
 		}
-		systemStatusMetrics = append(systemStatusMetrics, m)
+		serviceStatusMetrics = append(serviceStatusMetrics, m)
 	}
 	return
 }
 
-func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystemService func() (administration.NodeServiceStatusProperties, error)) (systemStatusMetric, error) {
+func (sc *systemCollector) collectServiceStatusMetric(name string, collectSystemService func() (administration.NodeServiceStatusProperties, error)) (serviceStatusMetric, error) {
 	status, err := collectSystemService()
 	if err != nil {
-		return systemStatusMetric{}, err
+		return serviceStatusMetric{}, err
 	}
-	statusMetric := systemStatusMetric{
-		Name:   name,
-		Status: 0.0,
+	statusMetric := serviceStatusMetric{
+		Name: name,
 	}
-	if strings.ToUpper(status.RuntimeState) == "RUNNING" {
-		statusMetric.Status = 1.0
+	statusDetail := map[string]float64{}
+	for _, possibleStatus := range possibleSystemServiceStatus {
+		statusDetail[possibleStatus] = 0.0
+		if strings.ToUpper(status.RuntimeState) == possibleStatus {
+			statusDetail[possibleStatus] = 1.0
+		}
 	}
+	statusMetric.StatusDetail = statusDetail
 	return statusMetric, nil
 }
 
-func (sc *systemCollector) collectApplianceServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectApplianceServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("appliance", sc.systemClient.ReadApplianceManagementServiceStatus)
 }
 
-func (sc *systemCollector) collectMessageBusServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectMessageBusServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("message_bus", sc.systemClient.ReadNSXMessageBusServiceStatus)
 }
 
-func (sc *systemCollector) collectNTPServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectNTPServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("ntp", sc.systemClient.ReadNTPServiceStatus)
 }
 
-func (sc *systemCollector) collectUpgradeAgentServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectUpgradeAgentServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("upgrade_agent", sc.systemClient.ReadNsxUpgradeAgentServiceStatus)
 }
 
-func (sc *systemCollector) collectProtonServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectProtonServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("proton", sc.systemClient.ReadProtonServiceStatus)
 }
 
-func (sc *systemCollector) collectProxyServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectProxyServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("proxy", sc.systemClient.ReadProxyServiceStatus)
 }
 
-func (sc *systemCollector) collectRabbitMQServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectRabbitMQServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("rabbitmq", sc.systemClient.ReadRabbitMQServiceStatus)
 }
 
-func (sc *systemCollector) collectRepositoryServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectRepositoryServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("repository", sc.systemClient.ReadRepositoryServiceStatus)
 }
 
-func (sc *systemCollector) collectSNMPServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSNMPServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("snmp", sc.systemClient.ReadSNMPServiceStatus)
 }
 
-func (sc *systemCollector) collectSSHServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSSHServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("ssh", sc.systemClient.ReadSSHServiceStatus)
 }
 
-func (sc *systemCollector) collectSearchServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSearchServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("search", sc.systemClient.ReadSearchServiceStatus)
 }
 
-func (sc *systemCollector) collectSyslogServiceMetric() (systemStatusMetric, error) {
+func (sc *systemCollector) collectSyslogServiceMetric() (serviceStatusMetric, error) {
 	return sc.collectServiceStatusMetric("syslog", sc.systemClient.ReadSyslogServiceStatus)
 }
