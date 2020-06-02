@@ -17,6 +17,7 @@ const (
 	fakeLogicalRouterTransportNodeID = "fake-transport-node-id"
 	fakeNatRuleID                    = "fake-nat-rule-id"
 	fakeNatRuleName                  = "fake-nat-rule-name"
+	fakeNatRuleType                  = "fake-nat-rule-type"
 	fakeNatTotalPackets              = 1
 	fakeNatTotalBytes                = 1
 )
@@ -65,6 +66,7 @@ func (c *mockLogicalRouterClient) ListAllNatRules(lrouterID string) ([]manager.N
 			natRule := manager.NatRule{
 				Id:              rule.Id,
 				DisplayName:     rule.DisplayName,
+				Action:          rule.Action,
 				LogicalRouterId: lrouterID,
 			}
 			natRules = append(natRules, natRule)
@@ -118,6 +120,7 @@ func buildLogicalRouterResponseWithNatRules(lrouterID string, ruleIDs []string, 
 		natRules = append(natRules, manager.NatRule{
 			Id:          fmt.Sprintf("%s-%s", fakeNatRuleID, ruleID),
 			DisplayName: fmt.Sprintf("%s-%s", fakeNatRuleName, ruleID),
+			Action:      fakeNatRuleType,
 		})
 	}
 	return mockLogicalRouterResponse{
@@ -235,6 +238,7 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 				{
 					ID:              fmt.Sprintf("%s-1", fakeNatRuleID),
 					Name:            fmt.Sprintf("%s-1", fakeNatRuleName),
+					Type:            fakeNatRuleType,
 					LogicalRouterID: fmt.Sprintf("%s-1", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
@@ -242,6 +246,7 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 				{
 					ID:              fmt.Sprintf("%s-2", fakeNatRuleID),
 					Name:            fmt.Sprintf("%s-2", fakeNatRuleName),
+					Type:            fakeNatRuleType,
 					LogicalRouterID: fmt.Sprintf("%s-1", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
@@ -249,6 +254,7 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 				{
 					ID:              fmt.Sprintf("%s-3", fakeNatRuleID),
 					Name:            fmt.Sprintf("%s-3", fakeNatRuleName),
+					Type:            fakeNatRuleType,
 					LogicalRouterID: fmt.Sprintf("%s-2", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
@@ -265,6 +271,7 @@ func TestLogicalRouterCollector_GenerateLogicalRouterNatStatisticMetrics(t *test
 				{
 					ID:              fmt.Sprintf("%s-3", fakeNatRuleID),
 					Name:            fmt.Sprintf("%s-3", fakeNatRuleName),
+					Type:            fakeNatRuleType,
 					LogicalRouterID: fmt.Sprintf("%s-2", fakeLogicalRouterID),
 					NatTotalPackets: fakeNatTotalPackets,
 					NatTotalBytes:   fakeNatTotalBytes,
