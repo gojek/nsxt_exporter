@@ -417,6 +417,27 @@ func (c *loadBalancerCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.loadBalancerL7CurrentSessions
 	ch <- c.loadBalancerL7MaxSessions
 	ch <- c.loadBalancerL7TotalSessions
+
+	ch <- c.loadBalancerPoolBytesIn
+	ch <- c.loadBalancerPoolBytesOut
+	ch <- c.loadBalancerPoolCurrentSessions
+	ch <- c.loadBalancerPoolHttpRequests
+	ch <- c.loadBalancerPoolMaxSessions
+	ch <- c.loadBalancerPoolPacketsIn
+	ch <- c.loadBalancerPoolPacketsOut
+	ch <- c.loadBalancerPoolSourceIPPersistenceEntrySize
+	ch <- c.loadBalancerPoolTotalSessions
+
+	ch <- c.loadBalancerPoolMemberBytesIn
+	ch <- c.loadBalancerPoolMemberBytesOut
+	ch <- c.loadBalancerPoolMemberCurrentSessions
+	ch <- c.loadBalancerPoolMemberHttpRequests
+	ch <- c.loadBalancerPoolMemberMaxSessions
+	ch <- c.loadBalancerPoolMemberPacketsIn
+	ch <- c.loadBalancerPoolMemberPacketsOut
+	ch <- c.loadBalancerPoolMemberSourceIPPersistenceEntrySize
+	ch <- c.loadBalancerPoolMemberTotalSessions
+
 	ch <- c.loadBalancerVirtualServerBytesIn
 	ch <- c.loadBalancerVirtualServerBytesOut
 	ch <- c.loadBalancerVirtualServerCurrentSessions
