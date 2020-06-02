@@ -484,6 +484,18 @@ func (c *loadBalancerCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(c.loadBalancerPoolMemberTotalSessions, prometheus.GaugeValue, memberStatistic.TotalSessions, memberLabels...)
 			}
 		}
+		for _, virtualServerStatistic := range metric.loadBalancerVirtualServerStatisticMetrics {
+			virtualServerLabels := []string{virtualServerStatistic.ID, metric.ID}
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerBytesIn, prometheus.GaugeValue, virtualServerStatistic.BytesIn, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerBytesOut, prometheus.GaugeValue, virtualServerStatistic.BytesOut, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerCurrentSessions, prometheus.GaugeValue, virtualServerStatistic.CurrentSessions, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerHttpRequests, prometheus.GaugeValue, virtualServerStatistic.HttpRequests, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerMaxSessions, prometheus.GaugeValue, virtualServerStatistic.MaxSessions, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerPacketsIn, prometheus.GaugeValue, virtualServerStatistic.PacketsIn, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerPacketsOut, prometheus.GaugeValue, virtualServerStatistic.PacketsOut, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerSourceIPPersistenceEntrySize, prometheus.GaugeValue, virtualServerStatistic.SourceIPPersistenceEntrySize, virtualServerLabels...)
+			ch <- prometheus.MustNewConstMetric(c.loadBalancerVirtualServerTotalSessions, prometheus.GaugeValue, virtualServerStatistic.TotalSessions, virtualServerLabels...)
+		}
 	}
 	return
 }
