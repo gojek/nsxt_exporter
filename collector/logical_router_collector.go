@@ -37,6 +37,7 @@ type logicalRouterStatusMetric struct {
 type natRuleStatisticMetric struct {
 	ID              string
 	Name            string
+	Type            string
 	LogicalRouterID string
 	NatTotalPackets float64
 	NatTotalBytes   float64
@@ -57,13 +58,13 @@ func newLogicalRouterCollector(logicalRouterClient client.LogicalRouterClient, l
 	natRuleTotalPackets := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "nat_rule", "total_packets"),
 		"Total packets processed by the NAT rule associated with logical router",
-		[]string{"id", "name", "logical_router_id"},
+		[]string{"id", "name", "type", "logical_router_id"},
 		nil,
 	)
 	natRuleTotalBytes := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "nat_rule", "total_bytes"),
 		"Total bytes processed by the NAT rule associated with logical router",
-		[]string{"id", "name", "logical_router_id"},
+		[]string{"id", "name", "type", "logical_router_id"},
 		nil,
 	)
 	return &logicalRouterCollector{
@@ -96,7 +97,7 @@ func (c *logicalRouterCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	natRuleStatisticMetrics := c.generateNatRuleStatisticMetrics(logicalRouters)
 	for _, natMetric := range natRuleStatisticMetrics {
-		labels := []string{natMetric.ID, natMetric.Name, natMetric.LogicalRouterID}
+		labels := []string{natMetric.ID, natMetric.Name, natMetric.Type, natMetric.LogicalRouterID}
 		ch <- prometheus.MustNewConstMetric(c.natRuleTotalPackets, prometheus.GaugeValue, natMetric.NatTotalPackets, labels...)
 		ch <- prometheus.MustNewConstMetric(c.natRuleTotalBytes, prometheus.GaugeValue, natMetric.NatTotalBytes, labels...)
 	}
@@ -146,6 +147,7 @@ func (c *logicalRouterCollector) generateNatRuleStatisticMetrics(logicalRouters 
 			natRuleStatisticMetric := natRuleStatisticMetric{
 				ID:              rule.Id,
 				Name:            rule.DisplayName,
+				Type:            rule.Action,
 				LogicalRouterID: logicalRouter.Id,
 				NatTotalPackets: float64(statistic.TotalPackets),
 				NatTotalBytes:   float64(statistic.TotalBytes),
