@@ -299,6 +299,13 @@ func (c *nsxtClient) GetLoadBalancerStatus(loadBalancerID string) (loadbalancer.
 	return loadBalancerStatus, err
 }
 
+func (c *nsxtClient) GetLoadBalancerStatistic(loadBalancerID string) (loadbalancer.LbServiceStatistics, error) {
+	localVarOptionals := make(map[string]interface{})
+	localVarOptionals["source"] = "realtime"
+	loadBalancerStatistic, _, err := c.apiClient.ServicesApi.ReadLoadBalancerServiceStatistics(c.apiClient.Context, loadBalancerID, localVarOptionals)
+	return loadBalancerStatistic, err
+}
+
 func (c *nsxtClient) ListAllFirewallSections() ([]manager.FirewallSection, error) {
 	var firewallSections []manager.FirewallSection
 	var cursor string
