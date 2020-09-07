@@ -1,12 +1,12 @@
-[![CI](https://github.com/jk8s/nsxt_exporter/workflows/Master%20Deployment/badge.svg)][ci]
-[![Go Report Card](https://goreportcard.com/badge/github.com/prometheus/haproxy_exporter)][goreportcard]
-[![Code Climate](https://codeclimate.com/github/prometheus/haproxy_exporter/badges/gpa.svg)][codeclimate]
+[![CI](https://github.com/gojek/nsxt_exporter/workflows/Master%20Deployment/badge.svg)][ci]
+[![Go Report Card](https://goreportcard.com/badge/github.com/gojek/nsxt_exporter)][goreportcard]
+[![Code Climate](https://codeclimate.com/github/gojek/nsxt_exporter/badges/gpa.svg)][codeclimate]
 [![Docker Pulls](https://img.shields.io/docker/pulls/cloudnativeid/nsxt-exporter-linux-amd64.svg?maxAge=604800)][hub]
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)][license]
 
-[ci]: https://github.com/jk8s/nsxt_exporter/actions?query=workflow%3A%22Master+Deployment%22+branch%3Amaster
-[goreportcard]: https://goreportcard.com/report/github.com/jk8s/nsxt_exporter
-[codeclimate]: https://codeclimate.com/github/jk8s/nsxt_exporter
+[ci]: https://github.com/gojek/nsxt_exporter/actions?query=workflow%3A%22Master+Deployment%22+branch%3Amaster
+[goreportcard]: https://goreportcard.com/report/github.com/gojek/nsxt_exporter
+[codeclimate]: https://codeclimate.com/github/gojek/nsxt_exporter
 [hub]: https://hub.docker.com/r/cloudnativeid/nsxt-exporter-linux-amd64/
 [license]: https://opensource.org/licenses/Apache-2.0
 
@@ -29,7 +29,7 @@ Help on flags:
 
 For more information check the [source code documentation][gdocs].
 
-[gdocs]: http://godoc.org/github.com/jk8s/nsxt_exporter
+[gdocs]: http://godoc.org/github.com/gojek/nsxt_exporter
 
 ## Usage
 
@@ -67,4 +67,4 @@ make test
 
 ## License
 
-Apache License 2.0, see [LICENSE](https://github.com/jk8s/nsxt_exporter/blob/master/LICENSE).
+Apache License 2.0, see [LICENSE](https://github.com/gojek/nsxt_exporter/blob/master/LICENSE).
